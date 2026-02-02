@@ -1,0 +1,134 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+% --- Typography & Spacing ---
+\usepackage{mathpazo} % Palatino font
+\usepackage{microtype} % Better kerning and spacing
+\usepackage{parskip}   % Paragraph spacing instead of indentation
+\usepackage{titlesec}  % Custom section titles
+
+% --- Headers & Footers ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small \scshape Solution Specification}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Links & References ---
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{cleveref}
+
+% --- Title Section ---
+\title{\textbf{Solution Specification}}
+\author{Angad Ahuja}
+\date{\today}
+
+% --- Section Styling ---
+\titleformat{\section}
+  {\normalfont\Large\bfseries\scshape}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\begin{document}
+\maketitle
+\thispagestyle{plain}
+
+\section{Solution-Space Specification and Methodological Rationale}
+\label{sec:methods_rationale}
+
+\subsection{Overview}
+The problem formulation fixes the latent layout, the observation channel (hit/miss/sunk), and the objective (minimize shots-to-win). Any additional decisions about reward signals, policy classes, baselines, training loops, and evaluation protocols are \emph{methodological} choices: they specify how we operationalize learning and how we assess learned behavior, but they are not required to define the game itself. This section records those choices explicitly and justifies them in terms of (i) sample efficiency, (ii) stability of optimization under partial observability, and (iii) interpretability and comparability of results.
+
+\subsection{Reward Design}
+\paragraph{Method choice.}
+We distinguish between the \emph{task objective} (minimize expected shots-to-win) and the \emph{training reward} supplied to an RL algorithm. Two reward families are considered:
+\begin{align}
+\textbf{Sparse step penalty:}\quad & r_t = -1 \ \text{for } t < \tau,\qquad r_\tau = 0.
+\label{eq:reward_step}\\
+\textbf{Shaped reward:}\quad & r_t = -1 + \alpha \cdot \mathbf{1}\{\textsf{hit at } t\} + \beta \cdot \mathbf{1}\{\textsf{sunk at } t\},
+\qquad \beta>\alpha>0.
+\label{eq:reward_shaped}
+\end{align}
+
+The step-penalty reward in \eqref{eq:reward_step} is directly aligned with minimizing episode length: maximizing cumulative return is equivalent to minimizing the number of actions taken, up to discounting. This makes it a principled default when the evaluation metric is shots-to-win. The shaped reward in \eqref{eq:reward_shaped} provides denser feedback and can accelerate early learning by creating intermediate gradients before the terminal condition is reliably reached. However, it can introduce \emph{objective distortion}: the agent may learn to optimize frequent hits rather than minimizing total shots, which is especially problematic if the shaping weights $(\alpha,\beta)$ are large relative to the step cost. In a partially observable search task, dense shaping can encourage ``locally greedy'' behavior (e.g., over-committing to exploitation after a hit) and can reduce exploration of information-rich actions. Therefore, shaping is treated as an explicit experimental factor rather than a default assumption.
+
+\paragraph{Operational decision.}
+We treat \eqref{eq:reward_step} as the \emph{baseline reward} (maximally faithful to shots-to-win), and we treat \eqref{eq:reward_shaped} as a controlled ablation to test whether learning speed improvements come at a generalization cost.
+
+\subsection{Policy Class and Parameterisation}
+\paragraph{Method choice.}
+Because the task is partially observable, a policy must, in principle, condition on the interaction history $h_t$. We consider two policy classes:
+\begin{align}
+\textbf{History-dependent policy:}\quad & \pi(a_t \mid h_t), \qquad h_t=(o_1,a_1,\dots,o_{t-1},a_{t-1}), \label{eq:hist_policy}\\
+\textbf{Recurrent (finite-memory) policy:}\quad & z_t = f_\theta(z_{t-1}, \phi(o_t, a_{t-1})), \qquad \pi_\theta(a_t \mid z_t, \mathrm{mask}_t).
+\label{eq:recurrent_policy}
+\end{align}
+Here $z_t$ is an internal state (memory), $f_\theta$ is a learnable update rule, $\phi$ is an observation-action encoder, and $\mathrm{mask}_t$ enforces infeasible actions.
+
+The observation at time $t$ reveals only the outcome of a single shot; optimal play depends on integrating evidence across many steps. A recurrent state $z_t$ is a standard mechanism to represent sufficient statistics approximately when exact belief tracking is computationally expensive. The recurrent policy can be interpreted as learning an approximate belief updater: $z_t$ aims to encode the posterior-relevant information contained in $h_t$ without explicitly enumerating ship layouts. Direct policies on full histories are impractical. Recurrent parameterisations yield bounded computation per step and integrate naturally with modern RL training pipelines.
+
+\paragraph{Operational decision.}
+We implement a feedforward policy as the simplest baseline (state derived from the public board record), and a recurrent policy as the main method when empirical results indicate that memory improves generalization or reduces sample complexity. The recurrent design is therefore a \emph{solution choice}, not a requirement of the problem definition.
+
+\subsection{Probability Heatmap Baseline as Non-RL Reference Policy}
+\paragraph{Method choice.}
+We define the posterior marginal occupancy probability for each cell:
+\[
+p_t(c) \;=\; \mathbb{P}(B(c)=1 \mid h_t),
+\]
+and consider the greedy baseline that selects:
+\[
+a_t \in \arg\max_{c \in \mathcal{A}(s_t)} p_t(c).
+\]
+
+Battleship is fundamentally a search-under-uncertainty problem. The heatmap baseline directly encodes the inference structure humans use (hunt/target) while remaining fully explainable as ``shoot the most likely cell.'' This baseline provides a reference point for whether an RL policy is learning genuine inference-like behavior or merely exploiting training artifacts. If RL cannot match the heatmap baseline on shots-to-win under the same placement distribution, it indicates representation/training deficiencies rather than an intrinsic limitation of the task. The baseline can be near-optimal in practice under standard placement assumptions, but such a claim depends on (i) how $p_t$ is computed (exact enumeration vs. sampling), (ii) whether tie-breaking incorporates targeting heuristics, and (iii) the ship set. Therefore we treat ``near-optimal'' as an empirical observation to be tested, not a theoretical guarantee.
+
+\paragraph{Operational decision.}
+We include the heatmap policy as a mandatory baseline for performance comparison and as an optional teacher for imitation warm-start, while explicitly reporting how $p_t$ is approximated (enumeration, rejection sampling, or particle filtering).
+
+\subsection{Self-Play Training Procedure (Adversarial Coupled Learning)}
+\paragraph{Method choice.}
+In the two-player setup, we require a training procedure to learn both attacker and defender policies. A standard approach is alternating optimization:
+\[
+\pi_A \leftarrow \mathrm{Train}(\pi_A \mid \pi_D \ \text{fixed}),\qquad
+\pi_D \leftarrow \mathrm{Train}(\pi_D \mid \pi_A \ \text{fixed}),
+\]
+repeating in cycles.
+
+If both players update simultaneously, each player experiences a moving target distribution, which can destabilize learning. Alternating updates partially restores stationarity during each training block. Fixing one player while training the other approximates a best-response dynamic, which is the simplest conceptual route toward equilibrium behavior in zero-sum games. Alternating schedules are straightforward to implement with existing single-agent RL code: each block reduces to standard RL in a fixed environment distribution induced by the opponent.
+
+\paragraph{Operational decision}
+We treat alternating optimization as the baseline self-play protocol. More complex game-theoretic stabilizers (e.g., opponent pools, fictitious play variants, regularization toward mixtures) are optional extensions and are not required for an initial hobby-scale implementation.
+
+\subsection{Evaluation Protocol and Metrics}
+\paragraph{Method choice.}
+We evaluate policies using metrics that quantify both \emph{task performance} and \emph{robustness/generalization}. Core metrics include:
+\begin{align}
+\textbf{Shots-to-win:}\quad & \mathbb{E}[\tau] \ \text{under a specified placement distribution}, \label{eq:shots_to_win}\\
+\textbf{Generalization gap:}\quad &
+\Delta_{\mathrm{gen}}
+\;=\;
+\mathbb{E}[\tau]_{\mathrm{adversarial}}
+\;-\;
+\mathbb{E}[\tau]_{\mathrm{uniform}}, \label{eq:gen_gap}
+\end{align}
+and optional calibration diagnostics when the agent outputs (or can be probed for) per-cell hit probabilities:
+\[
+\textbf{Calibration:}\quad \mathrm{Calib}(p,\;y) \ \text{computed over predicted probabilities and realized hits}.
+\]
+
+Since the task goal is to win in the fewest shots, $\mathbb{E}[\tau]$ is the most direct measure of success. Reporting win-rate is typically uninformative because the attacker almost always wins eventually; what matters is efficiency. A policy may perform well under the training placement distribution yet fail under shifted or adversarial placements. The generalization gap \eqref{eq:gen_gap} quantifies this fragility in a single scalar. If a method claims to learn an internal belief-like representation, calibration diagnostics test whether predicted probabilities correspond to empirical frequencies. This is especially relevant when comparing learned approaches to belief-based baselines.
+
+\paragraph{Operational decision}
+We report $\mathbb{E}[\tau]$ under at least: (i) uniform random placements, (ii) a biased scripted placement family, and (iii) placements from a learned/adversarial defender (when applicable). We report $\Delta_{\mathrm{gen}}$ whenever more than one placement distribution is used, and we include calibration diagnostics only when the model emits interpretable probabilities or a proxy can be extracted.
+
+\subsection{Summary of What Is Fixed vs. What Is Chosen}
+\paragraph{Fixed by the problem.} Hidden layout, hit/miss/sunk observation channel, feasibility of actions, termination condition, and the shots-to-win objective.
+
+\paragraph{Chosen by the method.} Reward surrogate, policy parameterisation (feedforward vs. recurrent), inclusion of heatmap baseline, self-play optimization schedule, and evaluation protocol beyond the primary objective metric.
+\end{document}
