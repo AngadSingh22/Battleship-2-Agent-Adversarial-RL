@@ -1,0 +1,10 @@
+[project]
+name = "battleship-rl"
+version = "0.1.0"
+description = "Battleship RL environment"
+dependencies = [
+    "gymnasium",
+    "stable-baselines3",
+    "torch",
+    "numpy",
+]
