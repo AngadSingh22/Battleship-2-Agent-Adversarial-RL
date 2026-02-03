@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Battleship RL Replay</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-badge">Battleship RL</div>
+        <h1>Deep Navy Replay Console</h1>
+        <p class="hero-subtitle">
+          Explore shot-by-shot outcomes, compare metrics, and inspect policy behavior.
+        </p>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Board Replay</h2>
+            <div class="panel-meta" id="board-meta">Loading config...</div>
+          </div>
+          <div class="board-wrap">
+            <div id="board" class="board"></div>
+          </div>
+          <div class="controls">
+            <div class="control-group">
+              <label for="replay-select">Replay</label>
+              <select id="replay-select"></select>
+            </div>
+            <div class="control-buttons">
+              <button id="prev-btn">Prev</button>
+              <button id="play-btn">Play</button>
+              <button id="pause-btn">Pause</button>
+              <button id="next-btn">Next</button>
+              <button id="reset-btn">Reset</button>
+            </div>
+            <div class="status">
+              <span id="step-counter">Step 0</span>
+              <span id="status-line">Awaiting replay data...</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Evaluation Metrics</h2>
+            <div class="panel-meta">Uniform vs Biased</div>
+          </div>
+          <div id="metrics" class="metrics"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Legend</h2>
+          </div>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-swatch hit"></span>
+              <span>Hit</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch miss"></span>
+              <span>Miss</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch unknown"></span>
+              <span>Unknown</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch sunk"></span>
+              <span>Sunk Step</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="ui/replay.js"></script>
+  </body>
+</html>
