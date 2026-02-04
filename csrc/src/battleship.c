@@ -3,11 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 // --- Memory Management ---
 
-GameState *create_game(int height, int width, int num_ships,
-                       int *ship_lengths) {
+BATTLESHIP_API GameState *create_game(int height, int width, int num_ships,
+                                      int *ship_lengths) {
   GameState *game = (GameState *)malloc(sizeof(GameState));
   if (!game)
     return NULL;
@@ -30,7 +29,7 @@ GameState *create_game(int height, int width, int num_ships,
   return game;
 }
 
-void free_game(GameState *game) {
+BATTLESHIP_API void free_game(GameState *game) {
   if (game) {
     if (game->board)
       free(game->board);
@@ -48,7 +47,7 @@ void free_game(GameState *game) {
 
 // --- Logic ---
 
-void reset_game(GameState *game, unsigned int seed) {
+BATTLESHIP_API void reset_game(GameState *game, unsigned int seed) {
   // 1. Reset grids
   // -1 = Empty
   for (int i = 0; i < game->height * game->width; i++) {
@@ -71,8 +70,8 @@ void reset_game(GameState *game, unsigned int seed) {
   srand(seed);
 }
 
-void place_ship_fixed(GameState *game, int ship_id, int r, int c,
-                      int orientation) {
+BATTLESHIP_API void place_ship_fixed(GameState *game, int ship_id, int r, int c,
+                                     int orientation) {
   // No validation here, assumes caller is valid!
   int len = game->ship_lengths[ship_id];
   if (orientation == 0) { // Horizontal
@@ -100,7 +99,7 @@ static bool check_sunk(GameState *game, int ship_id) {
   return all_hit;
 }
 
-int step_game(GameState *game, int action) {
+BATTLESHIP_API int step_game(GameState *game, int action) {
   if (action < 0 || action >= game->height * game->width) {
     return -1; // Invalid range
   }
@@ -130,7 +129,7 @@ int step_game(GameState *game, int action) {
   }
 }
 
-void get_observation(GameState *game, float *buffer) {
+BATTLESHIP_API void get_observation(GameState *game, float *buffer) {
   // Fill buffer (3 * H * W)
   // Channel 0: Hits
   // Channel 1: Misses

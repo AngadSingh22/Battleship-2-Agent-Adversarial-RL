@@ -1,87 +1,58 @@
-#!/usr/bin/env python3
-"""
-Training script for Adversarial Defender (Phase 2).
-Trains an RL agent on BattleshipPlacementEnv to generate hard layouts.
-"""
-
 import argparse
-from pathlib import Path
 import sys
-import yaml
+from pathlib import Path
 import numpy as np
 
-# Add project root to path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
 from sb3_contrib import MaskablePPO
+from sb3_contrib.common.maskable.utils import get_action_masks
 from sb3_contrib.common.wrappers import ActionMasker
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common.utils import set_random_seed
 
 from battleship_rl.envs.placement_env import BattleshipPlacementEnv
-from battleship_rl.agents.policies import BattleshipCnnPolicy
 
-
-def _load_yaml(path: str | None) -> dict:
-    if path is None:
-        return {}
-    data = Path(path)
-    if not data.exists():
-        return {}
-    with data.open("r", encoding="utf-8") as handle:
-        return yaml.safe_load(handle) or {}
-
-
-def make_env(rank: int, seed: int, env_config: dict, attacker_path: str | None = None):
+def make_env(rank, attacker_path):
     def _init():
-        # Clean config for placement env (only needs board/ships)
-        board_size = env_config.get("board_size", 10)
-        ships = env_config.get("ships", [5, 4, 3, 3, 2])
-        ship_config = env_config.get("ship_config")
-        if ship_config:
-            ships = list(ship_config.values())
-            
-        env = BattleshipPlacementEnv(
-            board_size=board_size, 
-            ships=ships,
-            attacker_path=attacker_path
-        )
-        env = ActionMasker(env, lambda e: e.get_action_mask())
-        env.reset(seed=seed + rank)
+        env = BattleshipPlacementEnv(attacker_model=attacker_path)
+        env = ActionMasker(env, lambda e: e.action_masks()) # Helper wrapper
+        # Seed logic is handled by gym typically, or explicitly
+        # env.reset(seed=rank) 
         return env
     return _init
 
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Adversarial Defender.")
-    parser.add_argument("--total-timesteps", type=int, default=100_000, help="Total steps.")
-    parser.add_argument("--num-envs", type=int, default=4, help="Parallel environments.")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed.")
-    parser.add_argument("--env-config", default="configs/env.yaml", help="Path to env config.")
-    parser.add_argument("--ppo-config", default="configs/ppo.yaml", help="Path to PPO config.")
-    parser.add_argument("--save-path", default="runs/defender_ppo", help="Model save path.")
-    parser.add_argument("--attacker-path", default=None, help="Path to trained Attacker PPO model.")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--total-timesteps", type=int, default=500_000)
+    parser.add_argument("--num-envs", type=int, default=8)
+    parser.add_argument("--attacker-path", type=str, required=True, help="Path to opponent attacker model zip")
+    parser.add_argument("--save-path", type=str, required=True, help="Path to save defender model (no extension)")
     args = parser.parse_args()
 
-    env_config = _load_yaml(args.env_config)
-    ppo_config = _load_yaml(args.ppo_config)
-
-    print(f"Starting Defender training: {args.total_timesteps} steps, {args.num_envs} envs")
-    
-    set_random_seed(args.seed)
-    env_fns = [make_env(rank, args.seed, env_config, args.attacker_path) for rank in range(args.num_envs)]
-    vec_env = SubprocVecEnv(env_fns)
+    # Create VecEnv
+    env = make_vec_env(
+        make_env(0, args.attacker_path),
+        n_envs=args.num_envs,
+        vec_env_cls=SubprocVecEnv,
+        vec_env_kwargs={"start_method": "spawn"}
+    )
 
     model = MaskablePPO(
-        policy=BattleshipCnnPolicy, # Reuse CNN policy
-        env=vec_env,
-        **ppo_config,
+        "MlpPolicy", 
+        env, 
+        verbose=1,
+        ent_coef=0.01, # Encourage exploration in placement
+        learning_rate=3e-4,
+        batch_size=64,
+        gamma=0.99, # Discount factor not super critical as episodes are short (5 steps), but set for stability
     )
-    
-    model.learn(total_timesteps=args.total_timesteps)
-    model.save(args.save_path)
-    print(f"Defender training complete. Model saved to {args.save_path}")
 
+    print(f"Training Defender against Attacker: {args.attacker_path}")
+    model.learn(total_timesteps=args.total_timesteps)
+    
+    # Save
+    model.save(args.save_path)
+    print(f"Saved Defender model to {args.save_path}.zip")
+    env.close()
 
 if __name__ == "__main__":
     main()

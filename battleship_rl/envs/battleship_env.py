@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence
 
 import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
+from gymnasium import spaces
 
 from battleship_rl.agents.defender import UniformRandomDefender
 from battleship_rl.envs.masks import compute_action_mask
 from battleship_rl.envs.observations import build_observation
 from battleship_rl.envs.rewards import StepPenaltyReward
+from bindings.c_api import CBattleshipFactory
 
 
 class BattleshipEnv(gym.Env):
@@ -43,11 +44,13 @@ class BattleshipEnv(gym.Env):
 
         self.height = height
         self.width = width
-        self.ships = ships
+        
+        # Normalize ships to list of ints
         self.ship_lengths = [
             int(length)
             for length in (list(ships.values()) if isinstance(ships, dict) else list(ships))
         ]
+        self.ships = self.ship_lengths # Alias
         self.num_ships = len(self.ship_lengths)
 
         self.defender = defender or UniformRandomDefender()
@@ -63,11 +66,14 @@ class BattleshipEnv(gym.Env):
             dtype=np.float32,
         )
 
+        # Initialize Backend (C-Core or Python Fallback)
+        self.backend = CBattleshipFactory(self.height, self.width, self.ship_lengths)
+
+        # Views (Will be bound to backend memory)
         self.ship_id_grid: Optional[np.ndarray] = None
         self.hits_grid: Optional[np.ndarray] = None
         self.miss_grid: Optional[np.ndarray] = None
         self.sunk_ships: set[int] = set()
-        self.ship_cells: dict[int, np.ndarray] = {}
 
     def _build_info(self, outcome_type: Optional[str], outcome_ship_id: Optional[int]) -> Dict[str, Any]:
         return {
@@ -77,26 +83,26 @@ class BattleshipEnv(gym.Env):
             "last_outcome": (outcome_type, outcome_ship_id),
         }
 
-    def _check_sunk(self, ship_id: int) -> bool:
-        cells = self.ship_cells[ship_id]
-        return bool(np.all(self.hits_grid[cells[:, 0], cells[:, 1]]))
-
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
+        
+        # 1. Sample Layout (Python Side)
         self.ship_id_grid = self.defender.sample_layout(
             (self.height, self.width), self.ships, self.np_random
         )
-        self.hits_grid = np.zeros((self.height, self.width), dtype=bool)
-        self.miss_grid = np.zeros((self.height, self.width), dtype=bool)
-        self.sunk_ships = set()
+        
+        # 2. Sync to Backend
+        # Reset backend state (clears hits/misses)
+        self.backend.reset(seed if seed is not None else 0)
+        # Copy layout to backend
+        self.backend.set_board(self.ship_id_grid)
+        
+        # 3. Bind Views directly to backend memory
+        self.hits_grid = self.backend.hits
+        self.miss_grid = self.backend.misses
+        self.sunk_ships = set() # Tracked for convenience, though backend has its own
 
-        self.ship_cells = {}
-        for ship_id in range(self.num_ships):
-            coords = np.argwhere(self.ship_id_grid == ship_id)
-            if coords.size == 0:
-                raise ValueError("Placement missing ship_id %d" % ship_id)
-            self.ship_cells[ship_id] = coords
-
+        # Initial Obs
         obs = build_observation(self.hits_grid, self.miss_grid)
         info = self._build_info(None, None)
         return obs, info
@@ -104,6 +110,8 @@ class BattleshipEnv(gym.Env):
     def step(self, action):
         action = int(action)
         mask = self.get_action_mask()
+        
+        # invalid Check
         if action < 0 or action >= mask.size or not mask[action]:
             if self.debug:
                 raise ValueError("Invalid action: %s" % action)
@@ -116,28 +124,32 @@ class BattleshipEnv(gym.Env):
             }
             return obs, self.invalid_action_penalty, False, True, info
 
-        row = action // self.width
-        col = action % self.width
-
-        ship_id = int(self.ship_id_grid[row, col])
-        outcome_ship_id: Optional[int] = None
-
-        if ship_id == -1:
-            self.miss_grid[row, col] = True
-            outcome_type = "MISS"
-        else:
-            self.hits_grid[row, col] = True
-            outcome_ship_id = ship_id
-            if ship_id not in self.sunk_ships and self._check_sunk(ship_id):
-                self.sunk_ships.add(ship_id)
-                outcome_type = "SUNK"
-            else:
-                outcome_type = "HIT"
-
-        terminated = len(self.sunk_ships) == self.num_ships
+        # Delegate to Backend
+        # Return code: 0=Miss, 1=Hit, 2=Sunk
+        res = self.backend.step(action)
+        
+        outcome_ship_id = None
+        outcome_type = "MISS"
+        
+        if res == 1: # Hit
+            outcome_type = "HIT"
+            r, c = divmod(action, self.width)
+            outcome_ship_id = int(self.ship_id_grid[r, c])
+        elif res == 2: # Sunk
+            outcome_type = "SUNK"
+            r, c = divmod(action, self.width)
+            outcome_ship_id = int(self.ship_id_grid[r, c])
+            self.sunk_ships.add(outcome_ship_id)
+            
+        # Check Termination
+        # Use backend logic for sunk ships
+        terminated = bool(np.all(self.backend.ship_sunk))
+        
         reward = self.reward_fn(outcome_type, terminated)
+        
         obs = build_observation(self.hits_grid, self.miss_grid)
         info = self._build_info(outcome_type, outcome_ship_id)
+        
         return obs, reward, terminated, False, info
 
     def get_action_mask(self) -> np.ndarray:

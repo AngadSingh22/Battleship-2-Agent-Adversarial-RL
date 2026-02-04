@@ -1,11 +1,18 @@
+
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+# Add project root to path
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+
 import numpy as np
+import yaml
+from tqdm import tqdm
 
 from battleship_rl.agents.defender import BiasedDefender, UniformRandomDefender
 from battleship_rl.baselines.heuristic_probmap import HeuristicProbMapAgent

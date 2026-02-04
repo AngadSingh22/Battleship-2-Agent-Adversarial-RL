@@ -51,7 +51,7 @@ def main():
         print(f"Skipping Gen 0 (Found {current_attacker})")
     else:
         run_command(
-            f"python scripts/train_ppo.py --total-timesteps {args.attacker_steps} "
+            f"python -m scripts.train_ppo --total-timesteps {args.attacker_steps} "
             f"--num-envs {args.num_envs} "
             f"--save-path {gen0_attacker_path}"
         )
@@ -68,7 +68,7 @@ def main():
             print(f"Skipping Gen {gen} Defender (Found {current_defender_path})")
         else:
             run_command(
-                f"python scripts/train_defender.py --total-timesteps {args.defender_steps} "
+                f"python -m scripts.train_defender --total-timesteps {args.defender_steps} "
                 f"--num-envs {args.num_envs} "
                 f"--attacker-path {current_attacker} "
                 f"--save-path {defender_path}"
@@ -84,7 +84,7 @@ def main():
              current_attacker = next_attacker
         else:
             run_command(
-                f"python scripts/train_ppo.py --total-timesteps {args.attacker_steps} "
+                f"python -m scripts.train_ppo --total-timesteps {args.attacker_steps} "
                 f"--num-envs {args.num_envs} "
                 f"--defender-path {current_defender_path} "
                 f"--save-path {attacker_path}"

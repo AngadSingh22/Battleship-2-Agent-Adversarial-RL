@@ -69,12 +69,28 @@ class CBattleship:
         # Buffer for observations (pre-allocated)
         self.obs_buffer = np.zeros((3, height, width), dtype=np.float32)
 
+        # Create Numpy Views of C-Memory (Zero Copy)
+        self.board = np.ctypeslib.as_array(self.game.contents.board, shape=(height, width))
+        self.hits = np.ctypeslib.as_array(self.game.contents.hits, shape=(height, width))
+        self.misses = np.ctypeslib.as_array(self.game.contents.misses, shape=(height, width))
+        sunk_ptr = self.game.contents.ship_sunk
+        self.ship_sunk = np.ctypeslib.as_array(sunk_ptr, shape=(len(ships),))
+
+
     def __del__(self):
         if _LIB and self.game:
             _LIB.free_game(self.game)
 
     def reset(self, seed=0):
         _LIB.reset_game(self.game, seed)
+
+    def set_board(self, board_grid: np.ndarray):
+        """Memcpy python grid to C board."""
+        if board_grid.shape != (self.height, self.width):
+             raise ValueError("Shape mismatch")
+        # Ensure contiguous int32
+        src = np.ascontiguousarray(board_grid, dtype=np.int32)
+        ctypes.memmove(self.game.contents.board, src.ctypes.data, src.nbytes)
 
     def place_ship(self, ship_id, r, c, orientation):
         _LIB.place_ship_fixed(self.game, ship_id, r, c, orientation)
@@ -109,6 +125,12 @@ class PyBattleship:
         self.misses.fill(False)
         self.ship_sunk = [False] * len(self.ships)
         self.steps = 0
+
+    def set_board(self, board_grid: np.ndarray):
+        """Mimic memcpy."""
+        if board_grid.shape != (self.height, self.width):
+             raise ValueError("Shape mismatch")
+        self.board[:] = board_grid[:]
         
     def place_ship(self, ship_id, r, c, orientation):
         length = self.ships[ship_id]

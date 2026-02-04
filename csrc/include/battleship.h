@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
 // Max board size constraints for static allocation (optional)
 // We will use dynamic allocation to support arbitrary sizes
 // but keeping structs simple.
@@ -28,14 +27,24 @@ typedef struct {
 extern "C" {
 #endif
 
+// Export Macro
+#ifdef _WIN32
+#define BATTLESHIP_API __declspec(dllexport)
+#else
+#define BATTLESHIP_API
+#endif
+
 // Create and destroy
-GameState *create_game(int height, int width, int num_ships, int *ship_lengths);
-void free_game(GameState *game);
+BATTLESHIP_API GameState *create_game(int height, int width, int num_ships,
+                                      int *ship_lengths);
+BATTLESHIP_API void free_game(GameState *game);
 
 // Core Logic
-void reset_game(GameState *game, unsigned int seed); // Random placement
-void place_ship_fixed(GameState *game, int ship_id, int r, int c,
-                      int orientation); // For deterministic/external placement
+BATTLESHIP_API void reset_game(GameState *game,
+                               unsigned int seed); // Random placement
+BATTLESHIP_API void
+place_ship_fixed(GameState *game, int ship_id, int r, int c,
+                 int orientation); // For deterministic/external placement
 
 // Step
 // Returns:
@@ -43,11 +52,11 @@ void place_ship_fixed(GameState *game, int ship_id, int r, int c,
 // 1: Hit
 // 2: Sunk
 // -1: Invalid/Repeated
-int step_game(GameState *game, int action);
+BATTLESHIP_API int step_game(GameState *game, int action);
 
 // Observation access
 // Fills provided float buffer with (3, H, W) state
-void get_observation(GameState *game, float *buffer);
+BATTLESHIP_API void get_observation(GameState *game, float *buffer);
 
 #ifdef __cplusplus
 }
