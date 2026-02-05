@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 # Logic to find the DLL
-_LIB_PATH = Path(__file__).parent.parent / "csrc" / "libbattleship.dll"
+_LIB_PATH = Path(__file__).parent.parent / "csrc" / "libbattleship_v2.dll"
 
 try:
     _LIB = ctypes.CDLL(str(_LIB_PATH))

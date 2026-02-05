@@ -130,18 +130,29 @@ BATTLESHIP_API int step_game(GameState *game, int action) {
 }
 
 BATTLESHIP_API void get_observation(GameState *game, float *buffer) {
-  // Fill buffer (3 * H * W)
-  // Channel 0: Hits
+  // Fill buffer (4 * H * W)
+  // Channel 0: Active Hits (Hit but ship not yet sunk)
   // Channel 1: Misses
-  // Channel 2: Unknown (1 - (H+M))
+  // Channel 2: Sunk (Hit and ship is sunk)
+  // Channel 3: Unknown (Not visited)
 
   int size = game->height * game->width;
   for (int i = 0; i < size; i++) {
-    float h = game->hits[i] ? 1.0f : 0.0f;
-    float m = game->misses[i] ? 1.0f : 0.0f;
+    bool is_hit = game->hits[i];
+    bool is_miss = game->misses[i];
+    int ship_id = game->board[i];
+    bool is_sunk = (ship_id != -1) && game->ship_sunk[ship_id];
 
-    buffer[0 * size + i] = h;
-    buffer[1 * size + i] = m;
-    buffer[2 * size + i] = 1.0f - (h + m);
+    // Mutually exclusive encoding
+    float val_active_hit = (is_hit && !is_sunk) ? 1.0f : 0.0f;
+    float val_miss = is_miss ? 1.0f : 0.0f;
+    float val_sunk = is_sunk ? 1.0f : 0.0f;
+    // Unknown if neither hit nor miss
+    float val_unknown = (!is_hit && !is_miss) ? 1.0f : 0.0f;
+
+    buffer[0 * size + i] = val_active_hit;
+    buffer[1 * size + i] = val_miss;
+    buffer[2 * size + i] = val_sunk;
+    buffer[3 * size + i] = val_unknown;
   }
 }

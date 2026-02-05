@@ -54,7 +54,27 @@ class BattleshipEnv(gym.Env):
         self.num_ships = len(self.ship_lengths)
 
         self.defender = defender or UniformRandomDefender()
-        self.reward_fn = reward_fn or StepPenaltyReward()
+        
+        # Reward Logic
+        if reward_fn is not None:
+            self.reward_fn = reward_fn
+        elif "reward_scheme" in cfg:
+            rs = cfg["reward_scheme"]
+            # Parse YAML scheme to ShapedReward params
+            # Expected YAML: hit, miss, sink
+            # ShapedReward = step_penalty + (alpha if hit) + (beta if sink)
+            step_penalty = float(rs.get("miss", -0.1))
+            target_hit = float(rs.get("hit", 1.0))
+            target_sink = float(rs.get("sink", 5.0))
+            
+            # alpha = Target - Base
+            alpha = target_hit - step_penalty
+            beta = target_sink - step_penalty
+            
+            from battleship_rl.envs.rewards import ShapedReward
+            self.reward_fn = ShapedReward(alpha=alpha, beta=beta, step_penalty=step_penalty)
+        else:
+            self.reward_fn = StepPenaltyReward()
         self.debug = bool(debug)
         self.invalid_action_penalty = -100.0
 
@@ -62,7 +82,7 @@ class BattleshipEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0.0,
             high=1.0,
-            shape=(3, self.height, self.width),
+            shape=(4, self.height, self.width),  # 4 channels: ActiveHit, Miss, Sunk, Unknown
             dtype=np.float32,
         )
 
@@ -103,7 +123,7 @@ class BattleshipEnv(gym.Env):
         self.sunk_ships = set() # Tracked for convenience, though backend has its own
 
         # Initial Obs
-        obs = build_observation(self.hits_grid, self.miss_grid)
+        obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
         info = self._build_info(None, None)
         return obs, info
 
@@ -115,7 +135,7 @@ class BattleshipEnv(gym.Env):
         if action < 0 or action >= mask.size or not mask[action]:
             if self.debug:
                 raise ValueError("Invalid action: %s" % action)
-            obs = build_observation(self.hits_grid, self.miss_grid)
+            obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
             info = {
                 "action_mask": mask,
                 "outcome_type": "INVALID",
@@ -147,7 +167,7 @@ class BattleshipEnv(gym.Env):
         
         reward = self.reward_fn(outcome_type, terminated)
         
-        obs = build_observation(self.hits_grid, self.miss_grid)
+        obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
         info = self._build_info(outcome_type, outcome_ship_id)
         
         return obs, reward, terminated, False, info

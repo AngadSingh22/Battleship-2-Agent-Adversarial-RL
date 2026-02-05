@@ -37,11 +37,17 @@ class BattleshipPlacementEnv(gym.Env):
         # Ideally we want a fast inference attacker.
         # If None, use Random Attacker (Uniform)
         self.attacker_agent = None
+        self.attacker_needs_legacy_obs = False  # Default: assume new format
         if attacker_model:
             from sb3_contrib import MaskablePPO
             # Load lazily or now?
             try:
                 self.attacker_agent = MaskablePPO.load(attacker_model)
+                # Check if attacker expects old 3-channel observations
+                attacker_obs_shape = self.attacker_agent.observation_space.shape
+                self.attacker_needs_legacy_obs = (attacker_obs_shape[0] == 3)
+                if self.attacker_needs_legacy_obs:
+                    print(f"[COMPAT] Attacker expects 3-channel obs, will slice 4-channel to 3")
             except Exception as e:
                 print(f"Warning: Could not load attacker {attacker_model}: {e}")
         
@@ -173,7 +179,9 @@ class BattleshipPlacementEnv(gym.Env):
         while not (terminated or truncated) and shots < max_steps:
              if self.attacker_agent:
                  mask = env.get_action_mask()
-                 action, _ = self.attacker_agent.predict(obs, action_masks=mask, deterministic=True)
+                 # Backward compatibility: slice 4-channel obs to 3 if attacker expects 3
+                 obs_for_attacker = obs[:3] if self.attacker_needs_legacy_obs else obs
+                 action, _ = self.attacker_agent.predict(obs_for_attacker, action_masks=mask, deterministic=True)
              else:
                  # Random
                  mask = env.get_action_mask()
