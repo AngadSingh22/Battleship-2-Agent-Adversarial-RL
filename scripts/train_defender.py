@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--num-envs", type=int, default=8)
     parser.add_argument("--attacker-path", type=str, required=True, help="Path to opponent attacker model zip")
     parser.add_argument("--save-path", type=str, required=True, help="Path to save defender model (no extension)")
+    parser.add_argument("--tensorboard-log", type=str, default="runs/tb_logs", help="TensorBoard log directory")
     args = parser.parse_args()
 
     # Create VecEnv
@@ -37,13 +38,14 @@ def main():
     )
 
     model = MaskablePPO(
-        "MlpPolicy", 
-        env, 
+        "MlpPolicy",
+        env,
         verbose=1,
-        ent_coef=0.01, # Encourage exploration in placement
+        tensorboard_log=args.tensorboard_log,
+        ent_coef=0.01,
         learning_rate=3e-4,
         batch_size=64,
-        gamma=0.99, # Discount factor not super critical as episodes are short (5 steps), but set for stability
+        gamma=0.99,
     )
 
     print(f"Training Defender against Attacker: {args.attacker_path}")
