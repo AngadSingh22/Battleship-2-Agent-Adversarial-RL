@@ -31,17 +31,20 @@ class DefenderEarlyStop(BaseCallback):
         min_delta: float = 0.3,
         min_timesteps: int = 100_000,
         verbose: int = 1,
+        save_path: str = None,
     ):
         super().__init__(verbose)
         self.patience = patience
         self.min_delta = min_delta
         self.min_timesteps = min_timesteps
+        self.save_path = save_path
         self._best_mean = -np.inf
         self._no_improve_count = 0
         self._last_entropy = None
 
     def _on_step(self) -> bool:
-        return True
+        # Return False to abort training if flagged.
+        return not getattr(self.model, "stop_training", False)
 
     def _on_rollout_end(self) -> None:
         # Warm-up guard: don't stop too early
@@ -95,6 +98,9 @@ class DefenderEarlyStop(BaseCallback):
                 f"(saved ~{steps_saved:,} steps). "
                 f"Best ep_rew_mean: {self._best_mean:.2f}\n"
             )
+            if self.save_path:
+                self.model.save(self.save_path)
+                print(f"[EarlyStop] Force-saved model to {self.save_path}.zip before halting.")
             self.model.stop_training = True
 
 
@@ -157,6 +163,7 @@ def main():
                 min_delta=args.early_stop_min_delta,
                 min_timesteps=args.early_stop_min_steps,
                 verbose=1,
+                save_path=args.save_path,
             )
         )
 

@@ -71,16 +71,19 @@ class AttackerEarlyStop(BaseCallback):
         value_loss_threshold: float = 1.0,
         min_timesteps: int = 200_000,
         verbose: int = 1,
+        save_path: str = None,
     ):
         super().__init__(verbose)
         self.patience = patience
         self.pg_loss_threshold = pg_loss_threshold
         self.value_loss_threshold = value_loss_threshold
         self.min_timesteps = min_timesteps
+        self.save_path = save_path
         self._plateau_count = 0
 
     def _on_step(self) -> bool:
-        return True
+        # Return False to abort training if flagged.
+        return not getattr(self.model, "stop_training", False)
 
     def _on_rollout_end(self) -> None:
         if self.num_timesteps < self.min_timesteps:
@@ -121,6 +124,9 @@ class AttackerEarlyStop(BaseCallback):
                 f"(saved ~{steps_saved:,} steps). "
                 f"pg_loss={pg_loss:.4f}, val_loss={val_loss:.3f}\n"
             )
+            if self.save_path:
+                self.model.save(self.save_path)
+                print(f"[AttackerEarlyStop] Force-saved model to {self.save_path}.zip before halting.")
             self.model.stop_training = True
 
 
@@ -165,6 +171,7 @@ def train(
                 patience=early_stop_patience,
                 min_timesteps=early_stop_min_steps,
                 verbose=1,
+                save_path=save_path,
             )
         )
 
