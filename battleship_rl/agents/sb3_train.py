@@ -57,7 +57,7 @@ def train(
     ppo_config: dict,
     save_path: str | None = None,
     defender_path: str | None = None,
-    tensorboard_log: str | None = "runs/tb_logs",
+    tensorboard_log: str | None = None,
 ) -> MaskablePPO:
     set_random_seed(seed)
     env_fns = [make_env(rank, seed, env_config, defender_path) for rank in range(num_envs)]

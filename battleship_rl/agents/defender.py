@@ -81,7 +81,10 @@ class AdversarialDefender(BaseDefender):
     Requires a pre-trained SB3 model (trained on BattleshipPlacementEnv).
     """
 
-    def __init__(self, model_path: str | None = None, deterministic: bool = True):
+    def __init__(self, model_path: str | None = None, deterministic: bool = False):
+        # deterministic=False: sample from the action distribution so each episode
+        # the defender places ships in a different (but learned-adversarial) configuration.
+        # deterministic=True gives zero layout diversity — the attacker memorises one board.
         self.deterministic = deterministic
         self.model = None
         if model_path:
