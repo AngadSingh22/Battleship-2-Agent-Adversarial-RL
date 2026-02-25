@@ -22,17 +22,26 @@ def main() -> None:
     parser.add_argument("--env-config", default="configs/env.yaml", help="Path to env config.")
     parser.add_argument("--ppo-config", default="configs/ppo.yaml", help="Path to PPO config.")
     parser.add_argument("--save-path", default="runs/battleship_baseline", help="Model save path.")
-    parser.add_argument("--defender-path", default=None, help="Path to adversarial defender model.")
+    parser.add_argument("--defender-path", default=None,
+                        help="Path to adversarial defender model.")
+    parser.add_argument("--load-path", default=None,
+                        help="Warm-start from this checkpoint zip (previous gen attacker).")
+    parser.add_argument("--no-early-stop", action="store_true",
+                        help="Disable attacker early stopping.")
+    parser.add_argument("--early-stop-patience", type=int, default=5,
+                        help="Rollout checks with no improvement before stopping.")
+    parser.add_argument("--early-stop-min-steps", type=int, default=200_000,
+                        help="Min timesteps before early stopping can trigger.")
     args = parser.parse_args()
 
     print(f"Loading env config from {args.env_config}...")
     env_config = _load_yaml(args.env_config)
-    
+
     print(f"Loading PPO config from {args.ppo_config}...")
     ppo_config = _load_yaml(args.ppo_config)
 
     print(f"Starting training: {args.total_timesteps} steps, {args.num_envs} envs, Seed {args.seed}")
-    model = train(
+    train(
         total_timesteps=args.total_timesteps,
         num_envs=args.num_envs,
         seed=args.seed,
@@ -40,8 +49,12 @@ def main() -> None:
         ppo_config=ppo_config,
         save_path=args.save_path,
         defender_path=args.defender_path,
+        load_path=args.load_path,
+        early_stop=not args.no_early_stop,
+        early_stop_patience=args.early_stop_patience,
+        early_stop_min_steps=args.early_stop_min_steps,
     )
-    
+
     print(f"Training complete. Model saved to {args.save_path}")
 
 
