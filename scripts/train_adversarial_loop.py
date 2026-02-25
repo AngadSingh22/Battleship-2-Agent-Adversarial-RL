@@ -26,9 +26,12 @@ def main():
     parser.add_argument("--generations", type=int, default=5, help="Number of adversarial generations.")
     parser.add_argument("--attacker-steps", type=int, default=1_000_000, help="Steps per attacker generation.")
     parser.add_argument("--defender-steps", type=int, default=500_000, help="Steps per defender generation.")
-    parser.add_argument("--num-envs", type=int, default=8, help="Number of parallel environments.")
+    parser.add_argument("--num-envs", type=int, default=8, help="Number of parallel environments for attacker.")
+    parser.add_argument("--defender-num-envs", type=int, default=None, help="Parallel envs for defender (default: same as --num-envs).")
     parser.add_argument("--base-path", default="runs/adversarial", help="Base path for artifacts.")
     args = parser.parse_args()
+    if args.defender_num_envs is None:
+        args.defender_num_envs = args.num_envs
 
     run_dir = Path(args.base_path)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -60,7 +63,7 @@ def main():
         else:
             run_command(
                 f"python3 -m scripts.train_defender --total-timesteps {args.defender_steps} "
-                f"--num-envs {args.num_envs} "
+                f"--num-envs {args.defender_num_envs} "
                 f"--attacker-path {current_attacker} "
                 f"--save-path {defender_path}"
             )
