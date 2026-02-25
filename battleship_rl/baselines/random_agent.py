@@ -14,9 +14,11 @@ class RandomAgent:
         if info is not None and "action_mask" in info:
             mask = np.array(info["action_mask"], dtype=bool)
         else:
-            hits = obs[0] > 0.5
-            misses = obs[1] > 0.5
-            mask = np.logical_not(np.logical_or(hits, misses)).reshape(-1)
+            # obs is (4, H, W): 0=ActiveHit, 1=Miss, 2=Sunk, 3=Unknown.
+            # Exclude all cells that have been fired at: active hits, misses,
+            # and cells of already-sunk ships (obs[2]).
+            fired = (obs[0] > 0.5) | (obs[1] > 0.5) | (obs[2] > 0.5)
+            mask = np.logical_not(fired).reshape(-1)
         valid = np.flatnonzero(mask)
         if valid.size == 0:
             return 0

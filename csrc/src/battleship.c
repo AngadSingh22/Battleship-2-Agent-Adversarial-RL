@@ -1,4 +1,5 @@
 #include "../include/battleship.h"
+#include "../include/placement.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,8 +49,7 @@ BATTLESHIP_API void free_game(GameState *game) {
 // --- Logic ---
 
 BATTLESHIP_API void reset_game(GameState *game, unsigned int seed) {
-  // 1. Reset grids
-  // -1 = Empty
+  // 1. Reset grids (-1 = Empty)
   for (int i = 0; i < game->height * game->width; i++) {
     game->board[i] = -1;
     game->hits[i] = false;
@@ -63,11 +63,10 @@ BATTLESHIP_API void reset_game(GameState *game, unsigned int seed) {
 
   game->steps = 0;
 
-  // Seed usage: In Phase 3 pure C, we can implement random placement.
-  // For now, exposing "place_ship_fixed" so Python can drive placement logic
-  // or we add a simple C-based random placement here if desired.
-  // For completeness with "random" contract:
-  srand(seed);
+  // 3. Place ships randomly using the provided seed.
+  //    Callers that want to drive placement from Python should call
+  //    reset_game() followed by set_board() / place_ship_fixed() instead.
+  place_ships_random(game, seed);
 }
 
 BATTLESHIP_API void place_ship_fixed(GameState *game, int ship_id, int r, int c,
@@ -130,7 +129,7 @@ BATTLESHIP_API int step_game(GameState *game, int action) {
 }
 
 BATTLESHIP_API void get_observation(GameState *game, float *buffer) {
-  // Fill buffer (4 * H * W)
+  // Fill buffer (4 * H * W): ActiveHit, Miss, Sunk, Unknown
   // Channel 0: Active Hits (Hit but ship not yet sunk)
   // Channel 1: Misses
   // Channel 2: Sunk (Hit and ship is sunk)

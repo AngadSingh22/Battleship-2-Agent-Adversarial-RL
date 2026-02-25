@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable
 
 import yaml
 
@@ -36,26 +36,12 @@ def make_env(rank: int, seed: int, env_config: dict, defender_path: str | None =
         if defender_path:
             try:
                 from battleship_rl.agents.defender import AdversarialDefender
-                from sb3_contrib import MaskablePPO
-                def_model = MaskablePPO.load(defender_path)
-                defender = AdversarialDefender(def_model)
+                defender = AdversarialDefender(model_path=defender_path)
             except Exception as e:
                 print(f"Failed to load defender from {defender_path}: {e}")
-        
-        # We need to construct BattleshipEnv args from config dict 
-        # (Assuming config dict structure matches __init__ or we use **config)
-        # Checking previous file view, it used BattleshipEnv(config=env_config)
-        # We should check if BattleshipEnv accepts 'config' or exploded args.
-        # Assuming kwarg unpacking for safety based on previous usage in this file.
-        # Original: env = BattleshipEnv(config=env_config)
-        
-        # If we want to inject defender, we might need to modify env after init 
-        # OR pass it in if supported. 
-        # BattleshipEnv usually takes defender_config or defender instance.
-        env = BattleshipEnv(config=env_config)
-        if defender:
-            env.defender = defender
-            
+
+        # Pass defender directly so it is set before any reset() call.
+        env = BattleshipEnv(config=env_config, defender=defender)
         env = ActionMasker(env, _mask_fn)
         env.reset(seed=seed + rank)
         return env

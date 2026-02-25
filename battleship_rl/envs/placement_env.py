@@ -6,9 +6,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from battleship_rl.envs.placement import _enumerate_candidates, _normalize_board_size, _normalize_ships
+from battleship_rl.envs.placement import decode_placement_action, _normalize_board_size
 from battleship_rl.envs.battleship_env import BattleshipEnv
-from stable_baselines3 import PPO
 
 class BattleshipPlacementEnv(gym.Env):
     """
@@ -123,15 +122,11 @@ class BattleshipPlacementEnv(gym.Env):
              
         action = int(action)
         length = self.ships[self.current_ship_idx]
-        
-        offset = self.height * self.width
-        if action < offset:
-            # Horizontal
-            r, c = divmod(action, self.width)
+
+        r, c, orientation = decode_placement_action(action, self.height, self.width)
+        if orientation == 0:  # Horizontal
             self.board[r, c : c + length] = self.current_ship_idx
-        else:
-            # Vertical
-            r, c = divmod(action - offset, self.width)
+        else:                 # Vertical
             self.board[r : r + length, c] = self.current_ship_idx
             
         self.current_ship_idx += 1

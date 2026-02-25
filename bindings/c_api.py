@@ -1,16 +1,20 @@
 import ctypes
-import os
 import sys
 from pathlib import Path
 import numpy as np
 
-# Logic to find the DLL
-_LIB_PATH = Path(__file__).parent.parent / "csrc" / "libbattleship_v2.dll"
+# Resolve platform library path: .so on Linux/macOS, .dll on Windows.
+_CSRC_DIR = Path(__file__).parent.parent / "csrc"
+if sys.platform.startswith("win"):
+    _LIB_PATH = _CSRC_DIR / "libbattleship_v2.dll"
+else:
+    _LIB_PATH = _CSRC_DIR / "libbattleship_v2.so"
 
 try:
     _LIB = ctypes.CDLL(str(_LIB_PATH))
 except OSError as e:
-    print(f"Error loading C library from {_LIB_PATH}: {e}")
+    print(f"Warning: Could not load C library from {_LIB_PATH}: {e}")
+    print("Falling back to PyBattleship (pure Python). Run `make` to build the C extension.")
     _LIB = None
 
 # Struct Definition
@@ -66,8 +70,8 @@ class CBattleship:
         c_ships = self.ships.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         self.game = _LIB.create_game(height, width, len(ships), c_ships)
         
-        # Buffer for observations (pre-allocated)
-        self.obs_buffer = np.zeros((3, height, width), dtype=np.float32)
+        # Buffer for observations (pre-allocated) — 4 channels: ActiveHit, Miss, Sunk, Unknown
+        self.obs_buffer = np.zeros((4, height, width), dtype=np.float32)
 
         # Create Numpy Views of C-Memory (Zero Copy)
         self.board = np.ctypeslib.as_array(self.game.contents.board, shape=(height, width))
@@ -165,10 +169,19 @@ class PyBattleship:
             return 0 # MISS
 
     def get_obs(self):
-        obs = np.zeros((3, self.height, self.width), dtype=np.float32)
-        obs[0] = self.hits.astype(np.float32)
-        obs[1] = self.misses.astype(np.float32)
-        obs[2] = 1.0 - (obs[0] + obs[1])
+        """Return 4-channel obs: ActiveHit, Miss, Sunk, Unknown."""
+        obs = np.zeros((4, self.height, self.width), dtype=np.float32)
+        hits = self.hits.astype(bool)
+        misses = self.misses.astype(bool)
+        # Sunk mask: cells belonging to a sunk ship that have been hit
+        sunk_mask = np.zeros((self.height, self.width), dtype=bool)
+        for ship_id, sunk in enumerate(self.ship_sunk):
+            if sunk:
+                sunk_mask |= (self.board == ship_id)
+        obs[0] = (hits & ~sunk_mask).astype(np.float32)  # ActiveHit
+        obs[1] = misses.astype(np.float32)                # Miss
+        obs[2] = sunk_mask.astype(np.float32)             # Sunk
+        obs[3] = (~hits & ~misses).astype(np.float32)     # Unknown
         return obs
 
 # Factory to choose backend

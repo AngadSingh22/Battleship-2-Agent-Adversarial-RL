@@ -2,15 +2,18 @@ from __future__ import annotations
 
 
 class StepPenaltyReward:
-    """Step penalty reward aligned with shots-to-win."""
+    """Step penalty reward aligned with shots-to-win (formulation Eq. 1).
 
-    def __init__(self, step_penalty: float = -1.0, terminal_reward: float = 0.0):
+    Returns ``step_penalty`` on *every* step, including the terminal shot that
+    sinks the last ship.  Maximising cumulative return is therefore strictly
+    equivalent to minimising episode length.
+    """
+
+    def __init__(self, step_penalty: float = -1.0):
         self.step_penalty = float(step_penalty)
-        self.terminal_reward = float(terminal_reward)
 
     def __call__(self, outcome_type: str, terminated: bool) -> float:
-        if terminated:
-            return self.terminal_reward
+        # Always penalise by -1 per shot; terminal step is not special.
         return self.step_penalty
 
 

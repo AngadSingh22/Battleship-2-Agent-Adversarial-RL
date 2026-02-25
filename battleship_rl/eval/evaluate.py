@@ -1,24 +1,26 @@
-
 from __future__ import annotations
 
 import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 # Add project root to path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 import numpy as np
-import yaml
-from tqdm import tqdm
 
-from battleship_rl.agents.defender import BiasedDefender, UniformRandomDefender
+from battleship_rl.agents.defender import (
+    AdversarialDefender,
+    BiasedDefender,
+    UniformRandomDefender,
+)
 from battleship_rl.baselines.heuristic_probmap import HeuristicProbMapAgent
 from battleship_rl.baselines.random_agent import RandomAgent
 from battleship_rl.envs.battleship_env import BattleshipEnv
 from battleship_rl.eval.metrics import generalization_gap, summarize
+
 
 
 class PolicyAdapter:
@@ -113,20 +115,40 @@ def _make_policy(policy_type: str, env: BattleshipEnv, rng: np.random.Generator,
 def evaluate_policy(
     policy_type: str,
     model_path: str | None = None,
+    adversarial_defender_path: str | None = None,
     env_config: dict | None = None,
     n_episodes: int = 100,
     seed: int = 0,
     capture_replays: int = 0,
 ) -> dict:
+    """Evaluate a policy across multiple placement distributions.
+
+    Gap 8: Three distributions are now evaluated as mandated by the solution
+    formulation §5:
+        (i)  uniform  — UniformRandomDefender
+        (ii) biased   — BiasedDefender (edge-biased scripted heuristic)
+        (iii) adversarial — AdversarialDefender (learned RL defender)
+                           only when adversarial_defender_path is provided.
+
+    Gap 11: The primary generalisation gap is computed as
+        Δ_gen = E[τ]_adversarial − E[τ]_uniform   (Eq. 7 of solution doc)
+    with a fallback to biased − uniform when no adversarial model is provided.
+    """
     env_config = env_config or {}
     results: Dict[str, dict] = {}
-
     replays: List[dict] = []
 
-    for defender_name, defender in [
+    # ---- Defender distributions to evaluate --------------------------------
+    defenders: list[tuple[str, object]] = [
         ("uniform", UniformRandomDefender()),
         ("biased", BiasedDefender()),
-    ]:
+    ]
+    if adversarial_defender_path:
+        defenders.append(
+            ("adversarial", AdversarialDefender(model_path=adversarial_defender_path))
+        )
+
+    for defender_name, defender in defenders:
         env = BattleshipEnv(config=env_config, defender=defender)
         rng = np.random.default_rng(seed)
         policy = _make_policy(policy_type, env, rng, model_path)
@@ -147,40 +169,42 @@ def evaluate_policy(
                 replays.append({"seed": episode_seed, "steps": steps})
         results[defender_name] = summarize(lengths, truncated_flags)
 
-    gap = generalization_gap(results["biased"]["mean"], results["uniform"]["mean"])
-    results["gap"] = gap
+    # ---- Generalisation gap ------------------------------------------------
+    # Use adversarial distribution as the challenge if available; else biased.
+    challenge_key = "adversarial" if "adversarial" in results else "biased"
+    results["gap"] = generalization_gap(
+        mean_challenge=results[challenge_key]["mean"],
+        mean_uniform=results["uniform"]["mean"],
+    )
+    results["gap_source"] = challenge_key  # document which was used
+
     if replays:
         results["replays"] = replays
 
     return results
 
 
-def _format_table(uniform: dict, biased: dict, gap: float) -> str:
-    header = "Mode | Mean | Std | 90th% | Fail Rate | Gap"
-    line = "--- | --- | --- | --- | --- | ---"
-    rows = [
-        "Uniform | {mean:.2f} | {std:.2f} | {p90:.2f} | {fail:.2f} | {gap:.2f}".format(
-            mean=uniform["mean"],
-            std=uniform["std"],
-            p90=uniform["p90"],
-            fail=uniform["fail_rate"],
-            gap=0.0,
-        ),
-        "Biased | {mean:.2f} | {std:.2f} | {p90:.2f} | {fail:.2f} | {gap:.2f}".format(
-            mean=biased["mean"],
-            std=biased["std"],
-            p90=biased["p90"],
-            fail=biased["fail_rate"],
-            gap=gap,
-        ),
-    ]
-    return "\n".join([header, line, *rows])
+def _format_table(results: dict) -> str:
+    rows = ["Mode | Mean | Std | 90th% | Fail Rate", "--- | --- | --- | --- | ---"]
+    for key in ("uniform", "biased", "adversarial"):
+        if key not in results:
+            continue
+        d = results[key]
+        rows.append(
+            f"{key.capitalize()} | {d['mean']:.2f} | {d['std']:.2f} | "
+            f"{d['p90']:.2f} | {d['fail_rate']:.2f}"
+        )
+    gap_src = results.get("gap_source", "biased")
+    rows.append(f"\nΔ_gen ({gap_src} − uniform) = {results.get('gap', float('nan')):.2f}")
+    return "\n".join(rows)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate Battleship policies.")
     parser.add_argument("--policy", choices=["random", "heuristic", "sb3"], default="random")
     parser.add_argument("--model-path", default=None)
+    parser.add_argument("--adversarial-defender", default=None,
+                        help="Path to trained AdversarialDefender model (.zip)")
     parser.add_argument("--episodes", type=int, default=100)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", default=None)
@@ -189,12 +213,12 @@ def main() -> None:
     results = evaluate_policy(
         policy_type=args.policy,
         model_path=args.model_path,
+        adversarial_defender_path=args.adversarial_defender,
         n_episodes=args.episodes,
         seed=args.seed,
         capture_replays=0,
     )
-    table = _format_table(results["uniform"], results["biased"], results["gap"])
-    print(table)
+    print(_format_table(results))
 
     if args.output:
         output_path = Path(args.output)

@@ -53,11 +53,11 @@ class HeuristicProbMapAgent:
         self.sunk_set: Set[int] = set()
 
     def _update_from_obs(self, obs: np.ndarray, info: dict | None) -> None:
-        # Obs is (3, H, W): 0=Hit, 1=Miss, 2=Unknown
-        # We rely on channel 0 and 1.
-        self.hit_grid = obs[0] > 0.5
+        # Obs is (4, H, W): 0=ActiveHit, 1=Miss, 2=Sunk, 3=Unknown
+        # hit_grid must cover ALL hit cells: active hits AND cells of sunk ships.
+        self.hit_grid = (obs[0] > 0.5) | (obs[2] > 0.5)
         self.miss_grid = obs[1] > 0.5
-        
+
         if info is not None and info.get("outcome_type") == "SUNK":
             ship_id = info.get("outcome_ship_id")
             if ship_id is not None:

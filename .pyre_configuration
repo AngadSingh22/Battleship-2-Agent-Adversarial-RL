@@ -1,0 +1,4 @@
+{
+  "source_directories": ["battleship_rl", "bindings", "scripts"],
+  "search_path": ["."]
+}

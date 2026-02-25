@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 import numpy as np
 
@@ -8,6 +8,7 @@ from battleship_rl.envs.placement import (
     _enumerate_candidates,
     _normalize_board_size,
     _normalize_ships,
+    decode_placement_action,
     sample_placement,
 )
 
@@ -140,17 +141,12 @@ class AdversarialDefender(BaseDefender):
             action, _ = self.model.predict(
                 obs, action_masks=mask, deterministic=self.deterministic
             )
-            action = int(action)
-            
-            # Apply action
-            orientation = action // (height * width)
-            flat_coord = action % (height * width)
-            r = flat_coord // width
-            c = flat_coord % width
-            
-            if orientation == 0:
+
+            # Apply action using the shared decode utility (Gap 10).
+            r, c, orientation = decode_placement_action(int(action), height, width)
+            if orientation == 0:  # Horizontal
                 board[r, c : c + length] = ship_idx
-            else:
+            else:                 # Vertical
                 board[r : r + length, c] = ship_idx
                 
         return board
