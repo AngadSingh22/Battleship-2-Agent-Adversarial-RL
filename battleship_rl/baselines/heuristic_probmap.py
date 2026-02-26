@@ -51,12 +51,12 @@ class HeuristicProbMapAgent:
         self.hit_grid = np.zeros((self.height, self.width), dtype=bool)
         self.miss_grid = np.zeros((self.height, self.width), dtype=bool)
         self.sunk_set: Set[int] = set()
+        self.fallback_used = False
 
     def _update_from_obs(self, obs: np.ndarray, info: dict | None) -> None:
-        # Obs is (4, H, W): 0=ActiveHit, 1=Miss, 2=Sunk, 3=Unknown
+        # Obs is (3, H, W): 0=Hit, 1=Miss, 2=Unknown
         # hit_grid must cover ALL hit cells: active hits AND cells of sunk ships.
-        self.active_hit_grid = obs[0] > 0.5
-        self.hit_grid = self.active_hit_grid | (obs[2] > 0.5)
+        self.hit_grid = obs[0] > 0.5
         self.miss_grid = obs[1] > 0.5
 
         if info is not None and info.get("outcome_type") == "SUNK":
@@ -210,7 +210,7 @@ class HeuristicProbMapAgent:
     def _fallback_action(self, mask: np.ndarray) -> int:
         """Hunt/Target logic if SMC fails."""
         # Target Mode: Adjacent to active hits only
-        hit_cells = np.argwhere(self.active_hit_grid)
+        hit_cells = np.argwhere(self.hit_grid)
         candidate_cells = []
         for r, c in hit_cells:
             for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
@@ -242,20 +242,23 @@ class HeuristicProbMapAgent:
         return int(rr * self.width + cc)
 
     def act(self, obs: np.ndarray, info: dict | None = None) -> int:
+        self.fallback_used = False
         self._update_from_obs(obs, info)
         
         # Mask: 0 for Hit/Miss cells (already fired), 1 for Unknown
         mask = np.logical_not(np.logical_or(self.hit_grid, self.miss_grid))
         
-        # prob_map = self._compute_prob_map()
+        prob_map = self._compute_prob_map()
         
         # Mask prob_map (don't fire at known cells)
-        # prob_map = prob_map * mask
+        valid_mask = mask.astype(bool)
+        prob_map_masked = prob_map * valid_mask
         
-        # if prob_map.max() > 0:
-        #     # Greedy max probability
-        #     best = np.argwhere(prob_map == prob_map.max())
-        #     rr, cc = best[self.rng.integers(0, len(best))]
-        #     return int(rr * self.width + cc)
+        if prob_map_masked.max() > 0:
+            # Greedy max probability
+            best = np.argwhere(prob_map_masked == prob_map_masked.max())
+            rr, cc = best[self.rng.integers(0, len(best))]
+            return int(rr * self.width + cc)
             
+        self.fallback_used = True
         return self._fallback_action(mask)

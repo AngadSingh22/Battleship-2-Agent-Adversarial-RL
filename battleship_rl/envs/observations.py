@@ -6,29 +6,33 @@ import numpy as np
 def build_observation(
     hits_grid: np.ndarray,
     miss_grid: np.ndarray,
-    ship_id_grid: np.ndarray,
-    ship_sunk: np.ndarray
 ) -> np.ndarray:
-    """Build channel-first observation: 0=ActiveHit, 1=Miss, 2=Sunk, 3=Unknown."""
-    hits = hits_grid.astype(bool)
-    misses = miss_grid.astype(bool)
+    """Build channel-first observation strictly defined by the LaTeX mathematical specification.
     
-    # Compute sunk mask: cells where ship_id >= 0 and that ship is sunk
-    sunk_mask = np.zeros_like(hits, dtype=bool)
-    for ship_id in range(len(ship_sunk)):
-        if ship_sunk[ship_id]:
-            sunk_mask |= (ship_id_grid == ship_id)
+    Channel 0: Hit (0/1)
+    Channel 1: Miss (0/1)
+    Channel 2: Unknown (0/1)
     
-    # Mutually exclusive channels
-    active_hit = hits & ~sunk_mask
-    sunk = sunk_mask
-    unknown = ~hits & ~misses
+    Invariants:
+    - Hit and Miss are mutually disjoint.
+    - Unknown = 1 - (Hit + Miss)
+    - Shape is (3, H, W)
+    - Dtype is float32
+    """
+    # Enforce boolean semantics and cast to float32
+    hits = hits_grid.astype(bool).astype(np.float32)
+    misses = miss_grid.astype(bool).astype(np.float32)
     
+    # Enforce exactly: Unknown = 1.0 - (Hit + Miss)
+    # This also acts as an implicit check: if Hit and Miss overlap, Unknown goes negative 
+    # (though the environment logic prevents this intrinsically).
+    unknown = 1.0 - (hits + misses)
+    
+    # Exact 3-channel representation
     obs = np.stack([
-        active_hit.astype(np.float32),
-        misses.astype(np.float32),
-        sunk.astype(np.float32),
-        unknown.astype(np.float32)
+        hits,
+        misses,
+        unknown
     ], axis=0)
     
     return obs.astype(np.float32)

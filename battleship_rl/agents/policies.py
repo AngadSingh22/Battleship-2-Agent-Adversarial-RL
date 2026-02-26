@@ -24,6 +24,7 @@ class BattleshipFeatureExtractor(BaseFeaturesExtractor):
             nn.ReLU(),
             nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
 
@@ -90,6 +91,7 @@ class BattleshipRecurrentFeatureExtractor(BaseFeaturesExtractor):
             nn.ReLU(),
             nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
         )
 

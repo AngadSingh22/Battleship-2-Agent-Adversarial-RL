@@ -7,7 +7,6 @@ import numpy as np
 from gymnasium import spaces
 
 from battleship_rl.agents.defender import UniformRandomDefender
-from battleship_rl.envs.masks import compute_action_mask
 from battleship_rl.envs.observations import build_observation
 from battleship_rl.envs.rewards import StepPenaltyReward
 from bindings.c_api import CBattleshipFactory
@@ -82,7 +81,7 @@ class BattleshipEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0.0,
             high=1.0,
-            shape=(4, self.height, self.width),  # 4 channels: ActiveHit, Miss, Sunk, Unknown
+            shape=(3, self.height, self.width),  # 3 channels: Hit, Miss, Unknown
             dtype=np.float32,
         )
 
@@ -123,7 +122,7 @@ class BattleshipEnv(gym.Env):
         self.sunk_ships = set() # Tracked for convenience, though backend has its own
 
         # Initial Obs
-        obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
+        obs = build_observation(self.hits_grid, self.miss_grid)
         info = self._build_info(None, None)
         return obs, info
 
@@ -135,7 +134,7 @@ class BattleshipEnv(gym.Env):
         if action < 0 or action >= mask.size or not mask[action]:
             if self.debug:
                 raise ValueError("Invalid action: %s" % action)
-            obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
+            obs = build_observation(self.hits_grid, self.miss_grid)
             info = {
                 "action_mask": mask,
                 "outcome_type": "INVALID",
@@ -167,13 +166,16 @@ class BattleshipEnv(gym.Env):
         
         reward = self.reward_fn(outcome_type, terminated)
         
-        obs = build_observation(self.hits_grid, self.miss_grid, self.ship_id_grid, self.backend.ship_sunk)
+        obs = build_observation(self.hits_grid, self.miss_grid)
         info = self._build_info(outcome_type, outcome_ship_id)
         
         return obs, reward, terminated, False, info
 
     def get_action_mask(self) -> np.ndarray:
-        return compute_action_mask(self.hits_grid, self.miss_grid)
+        # Strictly enforces boolean mask derived explicitly from actual grids
+        # A cell is valid (True) if it is neither a hit nor a miss.
+        valid_2d = ~(self.hits_grid.astype(bool) | self.miss_grid.astype(bool))
+        return valid_2d.flatten().astype(bool)
 
     def render(self):
         if self.hits_grid is None or self.miss_grid is None:
