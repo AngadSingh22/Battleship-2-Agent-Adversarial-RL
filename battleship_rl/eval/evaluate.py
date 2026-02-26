@@ -27,7 +27,7 @@ class PolicyAdapter:
     def reset(self) -> None:
         return None
 
-    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> int:
+    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> tuple[int, dict]:
         raise NotImplementedError
 
 
@@ -38,8 +38,8 @@ class RandomPolicyAdapter(PolicyAdapter):
     def reset(self) -> None:
         self.agent.reset()
 
-    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> int:
-        return self.agent.act(obs, info)
+    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> tuple[int, dict]:
+        return self.agent.act(obs, info), {"rejection_counts": {}}
 
 
 class HeuristicPolicyAdapter(PolicyAdapter):
@@ -53,8 +53,12 @@ class HeuristicPolicyAdapter(PolicyAdapter):
     def reset(self) -> None:
         self.agent.reset()
 
-    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> int:
-        return self.agent.act(obs, info)
+    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> tuple[int, dict]:
+        res = self.agent.act(obs, info)
+        return res["action"], {
+            "fallback_used": res.get("fallback_used", False),
+            "rejection_counts": getattr(self.agent, "rejection_counts", {})
+        }
 
 
 class SB3PolicyAdapter(PolicyAdapter):
@@ -66,11 +70,11 @@ class SB3PolicyAdapter(PolicyAdapter):
         self.model = MaskablePPO.load(model_path)
         self.deterministic = deterministic
 
-    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> int:
+    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> tuple[int, dict]:
         action, _ = self.model.predict(
             obs, action_masks=env.get_action_mask(), deterministic=self.deterministic
         )
-        return int(action)
+        return int(action), {"rejection_counts": {}}
 
 
 def _run_episode(
@@ -78,13 +82,21 @@ def _run_episode(
     policy: PolicyAdapter,
     seed: Optional[int] = None,
     record_steps: bool = False,
-) -> tuple[int, bool, list]:
+) -> tuple[int, bool, list, bool, dict]:
     obs, info = env.reset(seed=seed)
     policy.reset()
     steps: List[dict] = []
     t = 0
+    fallback_in_episode = False
+    episode_rejections = {}
     while True:
-        action = policy.act(obs, info, env)
+        action, details = policy.act(obs, info, env)
+        if details.get("fallback_used"):
+            fallback_in_episode = True
+        
+        for k, v in details.get("rejection_counts", {}).items():
+            episode_rejections[k] = episode_rejections.get(k, 0) + v
+            
         obs, _, terminated, truncated, info = env.step(action)
         if record_steps:
             steps.append(
@@ -97,7 +109,7 @@ def _run_episode(
         t += 1
         if terminated or truncated:
             break
-    return t, truncated, steps
+    return t, truncated, steps, fallback_in_episode, episode_rejections
 
 
 def _make_policy(policy_type: str, env: BattleshipEnv, rng: np.random.Generator, model_path: str | None):
@@ -154,10 +166,15 @@ def evaluate_policy(
         policy = _make_policy(policy_type, env, rng, model_path)
         lengths: List[int] = []
         truncated_flags: List[bool] = []
+        fallback_flags: List[bool] = []
+        total_rejections = {}
+        
+        print(f"Evaluating Defender: {defender_name} ({defender.__class__.__name__})")
+        
         for idx in range(n_episodes):
             record_steps = defender_name == "uniform" and idx < capture_replays
             episode_seed = seed + idx
-            length, truncated, steps = _run_episode(
+            length, truncated, steps, fallback, rejs = _run_episode(
                 env,
                 policy,
                 seed=episode_seed,
@@ -165,9 +182,16 @@ def evaluate_policy(
             )
             lengths.append(length)
             truncated_flags.append(truncated)
+            fallback_flags.append(fallback)
+            for k, v in rejs.items():
+                total_rejections[k] = total_rejections.get(k, 0) + v
+                
             if record_steps:
                 replays.append({"seed": episode_seed, "steps": steps})
+                
         results[defender_name] = summarize(lengths, truncated_flags)
+        results[defender_name]["fallback_rate"] = np.mean(fallback_flags)
+        results[defender_name]["rejections"] = total_rejections
 
     # ---- Generalisation gap ------------------------------------------------
     # Use adversarial distribution as the challenge if available; else biased.
@@ -185,15 +209,19 @@ def evaluate_policy(
 
 
 def _format_table(results: dict) -> str:
-    rows = ["Mode | Mean | Std | 90th% | Fail Rate", "--- | --- | --- | --- | ---"]
+    rows = ["Mode | Mean | Std | 90th% | Fail Rate | Fallback Rate", "--- | --- | --- | --- | --- | ---"]
     for key in ("uniform", "biased", "adversarial"):
         if key not in results:
             continue
         d = results[key]
         rows.append(
             f"{key.capitalize()} | {d['mean']:.2f} | {d['std']:.2f} | "
-            f"{d['p90']:.2f} | {d['fail_rate']:.2f}"
+            f"{d['p90']:.2f} | {d['fail_rate']:.2f} | {d.get('fallback_rate', 0.0):.2f}"
         )
+        if "rejections" in d and d["rejections"]:
+            rej_str = ", ".join(f"{k}: {v}" for k, v in d["rejections"].items())
+            rows.append(f"  └ Rejections ({key}): {rej_str}")
+            
     gap_src = results.get("gap_source", "biased")
     rows.append(f"\nΔ_gen ({gap_src} − uniform) = {results.get('gap', float('nan')):.2f}")
     return "\n".join(rows)

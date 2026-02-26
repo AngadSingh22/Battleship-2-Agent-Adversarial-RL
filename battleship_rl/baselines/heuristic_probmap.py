@@ -31,6 +31,7 @@ class HeuristicProbMapAgent:
         rng: np.random.Generator | None = None,
         num_particles: int = 2000,
         max_samples: int = 100,
+        max_backtrack_steps: int = 2000,
     ) -> None:
         if isinstance(board_size, int):
             self.height = board_size
@@ -44,6 +45,24 @@ class HeuristicProbMapAgent:
         self.rng = rng or np.random.default_rng()
         self.num_particles = num_particles
         self.max_samples = max_samples
+        self.max_backtrack_steps = max_backtrack_steps
+        
+        # Pyre static type initializations
+        self.hit_grid = np.zeros((self.height, self.width), dtype=bool)
+        self.miss_grid = np.zeros((self.height, self.width), dtype=bool)
+        self.sunk_set: Set[int] = set()
+        self.fallback_used = False
+        self.fallback_reason = ""
+        self._backtrack_steps = 0
+        self.rejection_counts = {
+            "bounds_violation": 0,
+            "overlap_violation": 0,
+            "miss_violation": 0,
+            "hit_violation": 0,
+            "not_sunk_fully_hit_violation": 0,
+        }
+        from typing import Dict, Tuple, List
+        self.hit_cells_by_ship_id: Dict[int, List[Tuple[int, int]]] = {}
         
         self.reset()
 
@@ -52,17 +71,28 @@ class HeuristicProbMapAgent:
         self.miss_grid = np.zeros((self.height, self.width), dtype=bool)
         self.sunk_set: Set[int] = set()
         self.fallback_used = False
+        self.fallback_reason = ""
+        self._backtrack_steps = 0
+        from typing import Dict
+        self.hit_cells_by_ship_id: Dict[int, List[Tuple[int, int]]] = {
+            i: [] for i in range(self.num_ships)
+        }
 
     def _update_from_obs(self, obs: np.ndarray, info: dict | None) -> None:
         # Obs is (3, H, W): 0=Hit, 1=Miss, 2=Unknown
-        # hit_grid must cover ALL hit cells: active hits AND cells of sunk ships.
+        new_hits = (obs[0] > 0.5) & (~self.hit_grid)
         self.hit_grid = obs[0] > 0.5
         self.miss_grid = obs[1] > 0.5
 
-        if info is not None and info.get("outcome_type") == "SUNK":
-            ship_id = info.get("outcome_ship_id")
-            if ship_id is not None:
-                self.sunk_set.add(int(ship_id))
+        if info is not None:
+            o_type = info.get("outcome_type")
+            o_ship = info.get("outcome_ship_id")
+            if o_type in ("HIT", "SUNK") and o_ship is not None:
+                hit_coords = np.argwhere(new_hits)
+                for r, c in hit_coords:
+                    self.hit_cells_by_ship_id[int(o_ship)].append((int(r), int(c)))
+            if o_type == "SUNK" and o_ship is not None:
+                self.sunk_set.add(int(o_ship))
 
     def _is_valid_placement(
         self, 
@@ -74,47 +104,55 @@ class HeuristicProbMapAgent:
     ) -> bool:
         if orientation == 0: # Horizontal
             if c + length > self.width:
-                return False
-            # Check Misses (obstacles)
-            if np.any(self.miss_grid[r, c : c + length]):
+                self.rejection_counts["bounds_violation"] += 1
                 return False
             # Check overlap with other ships
             if np.any(occupied[r, c : c + length]):
+                self.rejection_counts["overlap_violation"] += 1
+                return False
+            # Check Misses (obstacles)
+            if np.any(self.miss_grid[r, c : c + length]):
+                self.rejection_counts["miss_violation"] += 1
                 return False
         else: # Vertical
             if r + length > self.height:
-                return False
-            if np.any(self.miss_grid[r : r + length, c]):
+                self.rejection_counts["bounds_violation"] += 1
                 return False
             if np.any(occupied[r : r + length, c]):
+                self.rejection_counts["overlap_violation"] += 1
+                return False
+            if np.any(self.miss_grid[r : r + length, c]):
+                self.rejection_counts["miss_violation"] += 1
                 return False
         return True
 
-    def _satisfies_constraints(
+    def _satisfies_local_constraints(
         self, 
         r: int, 
         c: int, 
         length: int, 
         orientation: int, 
-        is_sunk: bool
+        known_hits: List[Tuple[int, int]]
     ) -> bool:
         """
-        Check if a placement satisfies Sunk/Not-Sunk constraints wrt Hits.
+        Check if an active (unsunk) ship placement includes all its known hits
+        and is NOT fully covered by hits.
         """
-        # Get cells covered by this ship
         if orientation == 0:
-            ship_cells = self.hit_grid[r, c : c + length]
+            cells = {(r, c + i) for i in range(length)}
         else:
-            ship_cells = self.hit_grid[r : r + length, c]
+            cells = {(r + i, c) for i in range(length)}
             
-        # Sunk Constraint: MUST be fully hit
-        if is_sunk:
-            if not np.all(ship_cells):
+        for hr, hc in known_hits:
+            if (hr, hc) not in cells:
+                self.rejection_counts["hit_violation"] += 1
                 return False
-        # Not Sunk Constraint: CANNOT be fully hit
-        else:
-            if np.all(ship_cells):
-                return False
+                
+        # Cannot be fully hit (as it's not sunk)
+        if all(self.hit_grid[rr, cc] for rr, cc in cells):
+            self.rejection_counts["not_sunk_fully_hit_violation"] += 1
+            return False
+            
         return True
 
     def _sample_layout(self) -> Optional[np.ndarray]:
@@ -122,27 +160,36 @@ class HeuristicProbMapAgent:
         Randomized backtracking to find ONE consistent layout.
         Returns: grid of 1.0s where ships are, or None if failed.
         """
-        # Order ships randomly to diversify samples
-        ship_order = self.rng.permutation(self.num_ships)
-        
-        # Grid to track occupancy in this sample: 0=Empty, 1=Occupied
         occupied = np.zeros((self.height, self.width), dtype=bool)
         
+        # Lock in sunk ships permanently
+        for ship_id in self.sunk_set:
+            for hr, hc in self.hit_cells_by_ship_id[ship_id]:
+                occupied[hr, hc] = True
+                
+        # Only search over ships that are NOT sunk
+        active_ships = [i for i in range(self.num_ships) if i not in self.sunk_set]
+        ship_order = self.rng.permutation(active_ships)
+        
+        self._backtrack_steps = 0
+        
         if self._backtrack(0, ship_order, occupied):
-            # Final Check: All global hits must be explained
-            # (Backtracking ensures no ship overlaps miss, and sunk constraints met)
-            # But we must ensure every TRUE hit on board is covered by SOME ship.
+            # Final Check: All global hits must be covered by ~something~
             if np.all(self.hit_grid <= occupied):
                 return occupied.astype(np.float32)
         return None
 
     def _backtrack(self, idx: int, ship_order: np.ndarray, occupied: np.ndarray) -> bool:
-        if idx == self.num_ships:
+        self._backtrack_steps += 1
+        if self._backtrack_steps > self.max_backtrack_steps:
+            return False
+            
+        if idx == len(ship_order):
             return True
 
         ship_id = ship_order[idx]
         length = self.ships[ship_id]
-        is_sunk = ship_id in self.sunk_set
+        known_hits = self.hit_cells_by_ship_id[ship_id]
         
         # Enumerate candidates for this ship
         candidates = []
@@ -151,14 +198,14 @@ class HeuristicProbMapAgent:
         for r in range(self.height):
             for c in range(self.width - length + 1):
                 if self._is_valid_placement(r, c, length, 0, occupied):
-                    if self._satisfies_constraints(r, c, length, 0, is_sunk):
+                    if self._satisfies_local_constraints(r, c, length, 0, known_hits):
                         candidates.append((r, c, 0))
         
         # Vertical
         for c in range(self.width):
             for r in range(self.height - length + 1):
                 if self._is_valid_placement(r, c, length, 1, occupied):
-                    if self._satisfies_constraints(r, c, length, 1, is_sunk):
+                    if self._satisfies_local_constraints(r, c, length, 1, known_hits):
                         candidates.append((r, c, 1))
 
         if not candidates:
@@ -241,8 +288,9 @@ class HeuristicProbMapAgent:
         rr, cc = valid[self.rng.integers(0, len(valid))]
         return int(rr * self.width + cc)
 
-    def act(self, obs: np.ndarray, info: dict | None = None) -> int:
+    def act(self, obs: np.ndarray, info: dict | None = None) -> dict:
         self.fallback_used = False
+        self.fallback_reason = ""
         self._update_from_obs(obs, info)
         
         # Mask: 0 for Hit/Miss cells (already fired), 1 for Unknown
@@ -258,7 +306,10 @@ class HeuristicProbMapAgent:
             # Greedy max probability
             best = np.argwhere(prob_map_masked == prob_map_masked.max())
             rr, cc = best[self.rng.integers(0, len(best))]
-            return int(rr * self.width + cc)
+            action = int(rr * self.width + cc)
+            return {"action": action, "fallback_used": False, "fallback_reason": ""}
             
         self.fallback_used = True
-        return self._fallback_action(mask)
+        self.fallback_reason = "sampling_budget_exhausted_or_zero_prob"
+        action = self._fallback_action(mask)
+        return {"action": action, "fallback_used": True, "fallback_reason": self.fallback_reason}
