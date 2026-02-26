@@ -55,7 +55,8 @@ class HeuristicProbMapAgent:
     def _update_from_obs(self, obs: np.ndarray, info: dict | None) -> None:
         # Obs is (4, H, W): 0=ActiveHit, 1=Miss, 2=Sunk, 3=Unknown
         # hit_grid must cover ALL hit cells: active hits AND cells of sunk ships.
-        self.hit_grid = (obs[0] > 0.5) | (obs[2] > 0.5)
+        self.active_hit_grid = obs[0] > 0.5
+        self.hit_grid = self.active_hit_grid | (obs[2] > 0.5)
         self.miss_grid = obs[1] > 0.5
 
         if info is not None and info.get("outcome_type") == "SUNK":
@@ -208,8 +209,8 @@ class HeuristicProbMapAgent:
 
     def _fallback_action(self, mask: np.ndarray) -> int:
         """Hunt/Target logic if SMC fails."""
-        # Target Mode: Adjacent to hits
-        hit_cells = np.argwhere(self.hit_grid)
+        # Target Mode: Adjacent to active hits only
+        hit_cells = np.argwhere(self.active_hit_grid)
         candidate_cells = []
         for r, c in hit_cells:
             for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
@@ -246,15 +247,15 @@ class HeuristicProbMapAgent:
         # Mask: 0 for Hit/Miss cells (already fired), 1 for Unknown
         mask = np.logical_not(np.logical_or(self.hit_grid, self.miss_grid))
         
-        prob_map = self._compute_prob_map()
+        # prob_map = self._compute_prob_map()
         
         # Mask prob_map (don't fire at known cells)
-        prob_map = prob_map * mask
+        # prob_map = prob_map * mask
         
-        if prob_map.max() > 0:
-            # Greedy max probability
-            best = np.argwhere(prob_map == prob_map.max())
-            rr, cc = best[self.rng.integers(0, len(best))]
-            return int(rr * self.width + cc)
+        # if prob_map.max() > 0:
+        #     # Greedy max probability
+        #     best = np.argwhere(prob_map == prob_map.max())
+        #     rr, cc = best[self.rng.integers(0, len(best))]
+        #     return int(rr * self.width + cc)
             
         return self._fallback_action(mask)
