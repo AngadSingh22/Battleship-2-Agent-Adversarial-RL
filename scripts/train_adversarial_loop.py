@@ -57,7 +57,7 @@ def main():
         print(f"Skipping Gen 0 (Found {current_attacker})")
     else:
         run_command(
-            f"python3 -m scripts.train_ppo --total-timesteps {args.attacker_steps} "
+            f'"{sys.executable}" -m scripts.train_ppo --total-timesteps {args.attacker_steps} '
             f"--num-envs {args.num_envs} "
             f"--early-stop-patience {args.attacker_early_stop_patience} "
             f"--save-path {gen0_attacker_path}"
@@ -82,7 +82,7 @@ def main():
                 else ""
             )
             run_command(
-                f"python3 -m scripts.train_defender --total-timesteps {args.defender_steps} "
+                f'"{sys.executable}" -m scripts.train_defender --total-timesteps {args.defender_steps} '
                 f"--num-envs {args.defender_num_envs} "
                 f"--attacker-path {current_attacker} "
                 f"--save-path {defender_path} "
@@ -105,7 +105,7 @@ def main():
                 else ""
             )
             run_command(
-                f"python3 -m scripts.train_ppo --total-timesteps {args.attacker_steps} "
+                f'"{sys.executable}" -m scripts.train_ppo --total-timesteps {args.attacker_steps} '
                 f"--num-envs {args.num_envs} "
                 f"--defender-path {current_defender_path} "
                 f"--save-path {attacker_path} "

@@ -8,14 +8,21 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class BattleshipFeatureExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space, features_dim: int = 256) -> None:
+    def __init__(self, observation_space, features_dim: int = 512) -> None:
         super().__init__(observation_space, features_dim)
         n_input_channels = observation_space.shape[0]
 
+        # 5 layers of 3x3 conv gives an 11x11 receptive field, covering the 10x10 board globally.
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(n_input_channels, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Flatten(),
         )
@@ -68,14 +75,20 @@ class BattleshipRecurrentFeatureExtractor(BaseFeaturesExtractor):
     ``PreviousActionObsWrapper`` (to be added to ``battleship_rl/envs/``).
     """
 
-    def __init__(self, observation_space, features_dim: int = 128) -> None:
+    def __init__(self, observation_space, features_dim: int = 512) -> None:
         super().__init__(observation_space, features_dim)
         n_input_channels = observation_space.shape[0]
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(n_input_channels, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Flatten(),
         )
