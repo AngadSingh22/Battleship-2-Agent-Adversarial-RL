@@ -87,6 +87,7 @@ class DiagnosisEnv(gym.Env):
         fn_rate: float = 0.10,
         step_penalty: float = -0.05,
         max_steps: int = 20,
+        fault_distribution: str = "uniform",
     ) -> None:
         super().__init__()
         self.n_components = n_components
@@ -102,15 +103,22 @@ class DiagnosisEnv(gym.Env):
         self.fn_rate = fn_rate
         self.step_penalty = step_penalty
         self.max_steps = max_steps
+        assert fault_distribution in ("uniform", "clustered", "rare_hard"), (
+            f"Unknown fault_distribution: {fault_distribution!r}"
+        )
+        self.fault_distribution = fault_distribution
 
-        # action: 0..n_tests-1 → run test; n_tests..n_tests+n_components-1 → declare component
+        # Precompute rare_hard subset: 2 components with lowest total coverage
+        coverage = self.channels.sum(axis=0)  # (n_components,) total tests covering each comp
+        self._rare_hard_subset = list(np.argsort(coverage)[:2])  # 2 least covered
+        # Clustered subset: first 3 components ("adjacent" by index)
+        self._clustered_subset = list(range(min(3, n_components)))
+
         self.action_space = spaces.Discrete(n_tests + n_components)
-        # observation: test results, one slot per test: -1=untested, 0=negative, 1=positive
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(n_tests,), dtype=np.float32
         )
 
-        # Runtime state (initialised in reset)
         self._faulty: int = 0
         self._obs: np.ndarray = np.full(n_tests, -1.0, dtype=np.float32)
         self._steps: int = 0
@@ -120,7 +128,14 @@ class DiagnosisEnv(gym.Env):
         self, seed: Optional[int] = None, options: Optional[dict] = None
     ) -> tuple[np.ndarray, Dict[str, Any]]:
         super().reset(seed=seed)
-        self._faulty = int(self.np_random.integers(0, self.n_components))
+        if self.fault_distribution == "uniform":
+            self._faulty = int(self.np_random.integers(0, self.n_components))
+        elif self.fault_distribution == "clustered":
+            self._faulty = int(self.np_random.choice(self._clustered_subset))
+        elif self.fault_distribution == "rare_hard":
+            self._faulty = int(self.np_random.choice(self._rare_hard_subset))
+        else:
+            self._faulty = int(self.np_random.integers(0, self.n_components))
         self._obs = np.full(self.n_tests, -1.0, dtype=np.float32)
         self._steps = 0
         return self._obs.copy(), {"faulty_component": self._faulty}

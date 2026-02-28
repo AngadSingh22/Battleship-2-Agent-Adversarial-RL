@@ -1,5 +1,5 @@
 """
-battleship_rl/baselines/particle_belief.py
+battleship_rl/baselines/particle_belief.py  [GPU-ACCELERATED SMC]
 ============================================
 Particle Belief Baseline for Battleship.
 

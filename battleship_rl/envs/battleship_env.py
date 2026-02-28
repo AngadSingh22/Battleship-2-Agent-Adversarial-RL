@@ -21,6 +21,8 @@ class BattleshipEnv(gym.Env):
         board_size: int | Sequence[int] = 10,
         ships: Optional[Sequence[int] | dict] = None,
         defender: Optional[object] = None,
+        defenders: Optional[list] = None,
+        defender_weights: Optional[list] = None,
         reward_fn: Optional[object] = None,
         debug: bool = False,
     ) -> None:
@@ -52,8 +54,22 @@ class BattleshipEnv(gym.Env):
         self.ships = self.ship_lengths # Alias
         self.num_ships = len(self.ship_lengths)
 
-        self.defender = defender or UniformRandomDefender()
-        
+        # Defender pool for mixture training (Regimes B and C)
+        if defenders is not None:
+            self._defenders = defenders
+            w = defender_weights or [1.0] * len(defenders)
+            total = sum(w)
+            self._defender_weights = [x / total for x in w]
+        else:
+            self._defenders = [defender or UniformRandomDefender()]
+            self._defender_weights = [1.0]
+        # Current episode defender (set at reset)
+        self.defender = self._defenders[0]
+        self._current_defender_name: str = type(self.defender).__name__
+
+        # One-time debug assertion flag for get_action_mask
+        self._debug_asserted: bool = False
+
         # Reward Logic
         if reward_fn is not None:
             self.reward_fn = reward_fn
@@ -100,12 +116,24 @@ class BattleshipEnv(gym.Env):
             "outcome_type": outcome_type,
             "outcome_ship_id": outcome_ship_id,
             "last_outcome": (outcome_type, outcome_ship_id),
+            "defender_mode": self._current_defender_name,
         }
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+        # Gymnasium seeds self.np_random inside super().reset()
         super().reset(seed=seed)
-        
-        # 1. Sample Layout (Python Side)
+
+        # 1. Sample defender once per episode using Gymnasium's self.np_random
+        if len(self._defenders) > 1:
+            idx = self.np_random.choice(
+                len(self._defenders), p=self._defender_weights
+            )
+            self.defender = self._defenders[int(idx)]
+        else:
+            self.defender = self._defenders[0]
+        self._current_defender_name = type(self.defender).__name__
+
+        # 2. Sample Layout using same self.np_random (fully reproducible)
         self.ship_id_grid = self.defender.sample_layout(
             (self.height, self.width), self.ships, self.np_random
         )
@@ -172,10 +200,13 @@ class BattleshipEnv(gym.Env):
         return obs, reward, terminated, False, info
 
     def get_action_mask(self) -> np.ndarray:
-        # Strictly enforces boolean mask derived explicitly from actual grids
-        # A cell is valid (True) if it is neither a hit nor a miss.
-        valid_2d = ~(self.hits_grid.astype(bool) | self.miss_grid.astype(bool))
-        return valid_2d.flatten().astype(bool)
+        # Zero-copy boolean mask: valid cells are neither hit nor missed
+        mask = (~(self.hits_grid.astype(bool) | self.miss_grid.astype(bool))).reshape(-1)
+        if self.debug and not self._debug_asserted:
+            assert mask.dtype == np.bool_, f"Mask dtype must be bool, got {mask.dtype}"
+            assert mask.shape == (self.height * self.width,), f"Mask shape mismatch: {mask.shape}"
+            self._debug_asserted = True
+        return mask
 
     def render(self):
         if self.hits_grid is None or self.miss_grid is None:

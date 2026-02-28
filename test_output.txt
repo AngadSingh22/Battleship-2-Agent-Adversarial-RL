@@ -1,0 +1,5 @@
+UNIFORM shift_metric (vs flat): 0.05206
+EDGE JSD vs UNIFORM: 0.03460
+UNIFORM JSD vs itself: 0.00000
+Greedy episode lengths: [(1, 50)]
+Min=1 Max=1 Mean=1.00

@@ -1,119 +1,81 @@
 # Final Evaluation Suite Results
 
-**Generated:** 2026-02-28 23:35  |  **Episodes per policy:** 100  |  **Seed:** 42
+**Generated:** 2026-03-01 01:58  |  **Episodes:** 100  |  **Seed:** 42  |  **Workers:** 16
 
 ---
 
-## Summary Table
+## Defender Distribution Metrics
 
-| Policy | Uniform Mean ± Std | Biased Mean ± Std | Δ_gen | Hit Rate | Time-to-First-Hit |
-|--------|-------------------|------------------|-------|----------|-------------------|
-| Random | 95.5 ± 4.3 | 96.3 ± 4.5 | +0.82 | 0.178 | 4.3 |
-| Heuristic | 47.7 ± 9.6 | 46.6 ± 8.7 | -1.13 | 0.357 | 3.6 |
-| Particle | 48.4 ± 9.4 | 48.3 ± 9.1 | -0.04 | 0.366 | 3.4 |
+*(500 samples each. `shift_metric` = JSD(q_mode || q_UNIFORM_defender), so UNIFORM=0.000 by construction.)*
+
+| Defender   | EdgeOcc | MeanDist† | Entropy (bits) | JSD vs UNIFORM-defender | Flag |
+|------------|---------|-----------|----------------|------------------------|------|
+| UNIFORM    |   0.282 |     0.283 |          6.607 |                0.00000 | (reference) |
+| EDGE       |   0.464 |     0.190 |          6.588 |                0.03252 | ✓ real shift |
+| CLUSTER    |   0.075 |     0.452 |          5.986 |                0.11350 | ✓ real shift |
+| SPREAD     |   0.685 |     0.146 |          6.145 |                0.16945 | ✓ real shift |
+| PARITY     |   0.276 |     0.285 |          6.546 |                0.01482 | ~ |
+
+†`mean_dist_to_edge` normalized by `floor(min(H,W)/2)` → range [0, 1].
 
 ---
 
-## Policy: Random
+## Performance + Diagnostics per Policy
+
+### Policy: Random
 > Random baseline — fires at random valid cells
 
-### Performance Metrics
+| Defender | Mean±Std | p90 | FailRate | Fallback | Δ_gen | HitRate | T-to-1stHit |
+|----------|----------|-----|----------|----------|-------|---------|-------------|
+| UNIFORM  | 96.0±4.2 | 100.0 | 0.000 | 0.000 | — | 0.177 | 4.0 |
+| EDGE     | 94.7±5.6 | 100.0 | 0.000 | 0.000 | -1.28 | 0.179 | 3.4 |
+| CLUSTER  | 95.3±4.8 | 100.0 | 0.000 | 0.000 | -0.68 | 0.178 | 4.7 |
+| SPREAD   | 95.5±4.8 | 100.0 | 0.000 | 0.000 | -0.47 | 0.178 | 5.6 |
+| PARITY   | 95.5±4.7 | 100.0 | 0.000 | 0.000 | -0.53 | 0.178 | 3.7 |
 
-| Mode | Mean | Std | 90th% | Fail Rate | Fallback Rate |
-|------|------|-----|-------|-----------|---------------|
-| Uniform | 95.53 | 4.31 | 100.00 | 0.000 | 0.000 |
-| Biased  | 96.35 | 4.47 | 100.00 | 0.000 | 0.000 |
+> **p90 Δ:** Largest tail shift = EDGE (+0.0 vs UNIFORM). ⚠ below p90≥+2 gate
 
-**Δ_gen (biased − uniform) = +0.82**
+### Policy: Heuristic
+> ProbMap heuristic — probability-sampling constraint backtracker
 
-### Behavioural Diagnostics (Uniform Defender, first 30 episodes)
+| Defender | Mean±Std | p90 | FailRate | Fallback | Δ_gen | HitRate | T-to-1stHit |
+|----------|----------|-----|----------|----------|-------|---------|-------------|
+| UNIFORM  | 44.7±8.9 | 58.0 | 0.000 | 0.000 | — | 0.380 | 3.0 |
+| EDGE     | 46.5±9.0 | 59.1 | 0.000 | 0.000 | +1.87 | 0.365 | 5.5 |
+| CLUSTER  | 46.2±10.6 | 60.0 | 0.000 | 0.000 | +1.51 | 0.368 | 1.4 |
+| SPREAD   | 49.5±7.8 | 61.0 | 0.000 | 0.000 | +4.85 | 0.343 | 5.6 |
+| PARITY   | 44.5±9.9 | 59.0 | 0.000 | 0.000 | -0.13 | 0.382 | 3.0 |
 
-| Metric | Value |
-|--------|-------|
-| Time to First Hit (shots) | 4.3333 |
-| Hit Rate | 0.1779 |
-| Hunt Phase Fraction | 0.0453 |
-| Revisit Rate (should be 0) | 0.0000 |
-| Shots Per Ship Sunk | 19.1133 |
+> **p90 Δ:** Largest tail shift = SPREAD (+3.0 vs UNIFORM). ✓ meets p90≥+2 gate
 
-### Interpretation
+### Policy: Particle
+> Particle Belief SMC — GPU-accelerated full belief filter (P=500)
 
-**Specific:** The random agent requires **95.5** shots on Uniform and **96.3** on Biased, with Δ_gen = 0.82. Hit rate = 0.178, time-to-first-hit = 4.3 shots. This serves as the absolute lower bound; any learned or heuristic agent should do better.
+| Defender | Mean±Std | p90 | FailRate | Fallback | Δ_gen | HitRate | T-to-1stHit |
+|----------|----------|-----|----------|----------|-------|---------|-------------|
+| UNIFORM  | 48.2±9.3 | 63.1 | 0.000 | 0.000 | — | 0.352 | 3.2 |
+| EDGE     | 49.1±10.0 | 64.0 | 0.000 | 0.000 | +0.82 | 0.346 | 5.2 |
+| CLUSTER  | 45.7±10.7 | 60.0 | 0.000 | 0.000 | -2.56 | 0.372 | 1.9 |
+| SPREAD   | 51.1±7.9 | 63.0 | 0.000 | 0.000 | +2.89 | 0.332 | 5.9 |
+| PARITY   | 47.9±9.9 | 62.1 | 0.000 | 0.000 | -0.38 | 0.355 | 3.5 |
 
-**General:** Random performance establishes the baseline expectation. The hit rate (0.178) is consistent with the geometric probability of hitting a ship cell on a 10×10 board with ships covering ~17 cells out of 100.
-
----
-
-## Policy: Heuristic
-> ProbMap heuristic — probability sampling with constraint backtracking
-
-### Performance Metrics
-
-| Mode | Mean | Std | 90th% | Fail Rate | Fallback Rate |
-|------|------|-----|-------|-----------|---------------|
-| Uniform | 47.72 | 9.60 | 60.00 | 0.000 | 0.000 |
-| Biased  | 46.59 | 8.67 | 60.00 | 0.000 | 0.000 |
-
-**Δ_gen (biased − uniform) = -1.13**
-
-### Behavioural Diagnostics (Uniform Defender, first 30 episodes)
-
-| Metric | Value |
-|--------|-------|
-| Time to First Hit (shots) | 3.6000 |
-| Hit Rate | 0.3566 |
-| Hunt Phase Fraction | 0.0755 |
-| Revisit Rate (should be 0) | 0.0000 |
-| Shots Per Ship Sunk | 9.5333 |
-
-### Interpretation
-
-**Specific:** The ProbMap heuristic requires **47.7** shots on Uniform and **46.6** on Biased, with Δ_gen = -1.13. Hit rate = 0.357, time-to-first-hit = 3.6 shots. Fallback rate = 0.000 (fraction of steps where the sampler exhausted its budget).
-
-**General:** The heuristic substantially outperforms random. The small Δ_gen indicates that the BiasedDefender does not provide a meaningfully harder challenge for a probability-map agent. A gap close to zero or negative would indicate the bias accidentally helps the heuristic (e.g. placing ships on edges where probability mass concentrates naturally).
+> **p90 Δ:** Largest tail shift = EDGE (+0.9 vs UNIFORM). ⚠ below p90≥+2 gate
 
 ---
 
-## Policy: Particle
-> Particle Belief SMC — full particle filter over board hypotheses
+## Sign-off Gate Check
 
-### Performance Metrics
-
-| Mode | Mean | Std | 90th% | Fail Rate | Fallback Rate |
-|------|------|-----|-------|-----------|---------------|
-| Uniform | 48.38 | 9.44 | 62.00 | 0.000 | 0.000 |
-| Biased  | 48.34 | 9.08 | 59.20 | 0.000 | 0.000 |
-
-**Δ_gen (biased − uniform) = -0.04**
-
-### Behavioural Diagnostics (Uniform Defender, first 30 episodes)
-
-| Metric | Value |
-|--------|-------|
-| Time to First Hit (shots) | 3.3667 |
-| Hit Rate | 0.3659 |
-| Hunt Phase Fraction | 0.0725 |
-| Revisit Rate (should be 0) | 0.0000 |
-| Shots Per Ship Sunk | 9.2933 |
-
-### Interpretation
-
-**Specific:** The Particle Belief SMC requires **48.4** shots on Uniform and **48.3** on Biased, with Δ_gen = -0.04. Hit rate = 0.366, time-to-first-hit = 3.4 shots.
-
-**General:** The particle filter is the strongest scripted baseline. It maintains a posterior over full board layouts and marginalizes to select the highest-probability untried cell. A better performance vs heuristic indicates that the explicit constraint propagation (filtering invalid particles vs. re-sampling particles each step) extracts more signal from observations.
+1. **JSD > 0.005 for ≥2 non-UNIFORM modes:** 4/4 modes qualify — ✓ PASS
 
 ---
 
-## Overall Project Interpretation
+## Diagnosis POMDP Fault-Shift Results
 
-The results above establish a performance ladder for Battleship attackers:
-
-1. **Random** — 95.5 shots on Uniform
-2. **Heuristic** — 47.7 shots on Uniform
-3. **Particle** — 48.4 shots on Uniform
-
-The generalisation gap (Δ_gen) measures how much harder the BiasedDefender is vs. Uniform. 
-A gap close to 0 means the scripted bias does not present a meaningful challenge; 
-a positive gap signals the attacker genuinely struggles against the biased placement strategy.
-
-The next step to produce a larger, more reliable Δ_gen is to train a full `AdversarialDefender` via RL (already implemented in `defender.py` via `AdversarialDefender`), then pass `--adversarial-defender <path>` to the evaluator.
+| Baseline | Distribution | Success Rate | Mean Steps (Success) | Δ_gen | Mean Steps (All) |
+|----------|-------------|--------------|----------------------|-------|------------------|
+| random   | uniform      | 0.090 | 1.56 ± 0.96 | — | 1.64 |
+| random   | clustered    | 0.110 | 2.36 ± 1.43 | +0.81 | 1.64 |
+| random   | rare_hard    | 0.140 | 1.57 ± 0.62 | +0.02 | 1.64 |
+| greedy   | uniform      | 0.760 | 5.83 ± 0.52 | — | 6.04 |
+| greedy   | clustered    | 0.840 | 5.96 ± 0.64 | +0.14 | 6.12 |
+| greedy   | rare_hard    | 0.830 | 5.59 ± 0.60 | -0.24 | 5.71 |
