@@ -75,6 +75,53 @@ class BiasedDefender(BaseDefender):
         return ship_id_grid
 
 
+class CenteredDefender(BaseDefender):
+    """Interior-biased defender — ships prefer the center, away from edges.
+
+    This is the natural adversary of the ProbMap heuristic, which concentrates
+    probability mass on boundary cells when no other information is available.
+    Expected effect: Δ_gen (centered − uniform) is meaningfully positive (harder).
+    """
+
+    def _center_weight_grid(self, height: int, width: int) -> np.ndarray:
+        weights = np.zeros((height, width), dtype=np.float32)
+        for r in range(height):
+            for c in range(width):
+                dist = min(r, c, height - 1 - r, width - 1 - c)
+                # dist=0 → edge → low weight; dist large → center → high weight
+                weights[r, c] = float(dist + 1)
+        return weights
+
+    def sample_layout(
+        self,
+        board_size: int | Sequence[int],
+        ships: Sequence[int] | dict,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        height, width = _normalize_board_size(board_size)
+        ship_lengths = _normalize_ships(ships)
+        ship_id_grid = -np.ones((height, width), dtype=np.int32)
+        weight_grid = self._center_weight_grid(height, width)
+
+        for ship_id, length in enumerate(ship_lengths):
+            candidates = _enumerate_candidates(ship_id_grid, length)
+            if not candidates:
+                raise ValueError("No legal placements remaining for ship length.")
+            weights = np.array(
+                [sum(weight_grid[r, c] for r, c in candidate) for candidate in candidates],
+                dtype=np.float32,
+            )
+            if float(weights.sum()) <= 0.0:
+                choice_idx = int(rng.integers(0, len(candidates)))
+            else:
+                probs = weights / weights.sum()
+                choice_idx = int(rng.choice(len(candidates), p=probs))
+            for r, c in candidates[choice_idx]:
+                ship_id_grid[r, c] = ship_id
+
+        return ship_id_grid
+
+
 class AdversarialDefender(BaseDefender):
     """
     Defender that uses an RL policy to place ships.
