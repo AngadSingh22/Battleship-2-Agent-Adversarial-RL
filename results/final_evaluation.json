@@ -1,0 +1,104 @@
+{
+  "random": {
+    "description": "Random baseline \u2014 fires at random valid cells",
+    "eval": {
+      "uniform": {
+        "mean": 95.52999877929688,
+        "std": 4.313826560974121,
+        "p90": 100.0,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {}
+      },
+      "biased": {
+        "mean": 96.3499984741211,
+        "std": 4.4729743003845215,
+        "p90": 100.0,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {}
+      },
+      "gap": 0.8199996948242188,
+      "gap_source": "biased"
+    },
+    "diagnostics": {
+      "time_to_first_hit": 4.333333333333333,
+      "hit_rate": 0.177886292291594,
+      "hunt_efficiency": 0.04534356470177886,
+      "revisit_rate": 0.0,
+      "shots_per_ship_sunk": 19.113333333333333
+    }
+  },
+  "heuristic": {
+    "description": "ProbMap heuristic \u2014 probability sampling with constraint backtracking",
+    "eval": {
+      "uniform": {
+        "mean": 47.720001220703125,
+        "std": 9.6032075881958,
+        "p90": 60.0,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {
+          "bounds_violation": 0,
+          "overlap_violation": 810816242852,
+          "miss_violation": 531317012726,
+          "hit_violation": 1000708376978,
+          "not_sunk_fully_hit_violation": 238994987
+        }
+      },
+      "biased": {
+        "mean": 46.59000015258789,
+        "std": 8.669595718383789,
+        "p90": 60.0,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {
+          "bounds_violation": 0,
+          "overlap_violation": 624243722448,
+          "miss_violation": 558037439504,
+          "hit_violation": 737882955177,
+          "not_sunk_fully_hit_violation": 206342056
+        }
+      },
+      "gap": -1.1300010681152344,
+      "gap_source": "biased"
+    },
+    "diagnostics": {
+      "time_to_first_hit": 3.6,
+      "hit_rate": 0.35664335664335667,
+      "hunt_efficiency": 0.07552447552447553,
+      "revisit_rate": 0.0,
+      "shots_per_ship_sunk": 9.533333333333333
+    }
+  },
+  "particle": {
+    "description": "Particle Belief SMC \u2014 full particle filter over board hypotheses",
+    "eval": {
+      "uniform": {
+        "mean": 48.380001068115234,
+        "std": 9.435867309570312,
+        "p90": 62.0,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {}
+      },
+      "biased": {
+        "mean": 48.34000015258789,
+        "std": 9.078788757324219,
+        "p90": 59.20000000000002,
+        "fail_rate": 0.0,
+        "fallback_rate": 0.0,
+        "rejections": {}
+      },
+      "gap": -0.04000091552734375,
+      "gap_source": "biased"
+    },
+    "diagnostics": {
+      "time_to_first_hit": 3.3666666666666667,
+      "hit_rate": 0.36585365853658536,
+      "hunt_efficiency": 0.07245337159253945,
+      "revisit_rate": 0.0,
+      "shots_per_ship_sunk": 9.293333333333333
+    }
+  }
+}

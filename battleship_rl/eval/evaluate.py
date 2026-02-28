@@ -17,6 +17,7 @@ from battleship_rl.agents.defender import (
     UniformRandomDefender,
 )
 from battleship_rl.baselines.heuristic_probmap import HeuristicProbMapAgent
+from battleship_rl.baselines.particle_belief import ParticleBeliefAgent
 from battleship_rl.baselines.random_agent import RandomAgent
 from battleship_rl.envs.battleship_env import BattleshipEnv
 from battleship_rl.eval.metrics import generalization_gap, summarize
@@ -77,6 +78,23 @@ class SB3PolicyAdapter(PolicyAdapter):
         return int(action), {"rejection_counts": {}}
 
 
+class ParticleBeliefPolicyAdapter(PolicyAdapter):
+    def __init__(self, env: BattleshipEnv, rng: np.random.Generator, n_particles: int = 200) -> None:
+        self.agent = ParticleBeliefAgent(
+            board_size=(env.height, env.width),
+            ships=env.ship_lengths,
+            rng=rng,
+            n_particles=n_particles,
+        )
+
+    def reset(self) -> None:
+        self.agent.reset()
+
+    def act(self, obs: np.ndarray, info: dict, env: BattleshipEnv) -> tuple[int, dict]:
+        res = self.agent.act(obs, info)
+        return res["action"], {"fallback_used": res.get("fallback_used", False)}
+
+
 def _run_episode(
     env: BattleshipEnv,
     policy: PolicyAdapter,
@@ -117,6 +135,8 @@ def _make_policy(policy_type: str, env: BattleshipEnv, rng: np.random.Generator,
         return RandomPolicyAdapter(rng)
     if policy_type == "heuristic":
         return HeuristicPolicyAdapter(env, rng)
+    if policy_type == "particle":
+        return ParticleBeliefPolicyAdapter(env, rng)
     if policy_type == "sb3":
         if model_path is None:
             raise ValueError("model_path must be provided for sb3 policy.")
@@ -229,7 +249,7 @@ def _format_table(results: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate Battleship policies.")
-    parser.add_argument("--policy", choices=["random", "heuristic", "sb3"], default="random")
+    parser.add_argument("--policy", choices=["random", "heuristic", "particle", "sb3"], default="random")
     parser.add_argument("--model-path", default=None)
     parser.add_argument("--adversarial-defender", default=None,
                         help="Path to trained AdversarialDefender model (.zip)")
