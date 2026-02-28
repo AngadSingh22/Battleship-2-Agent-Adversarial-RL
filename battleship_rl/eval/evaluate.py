@@ -14,14 +14,12 @@ import numpy as np
 from battleship_rl.agents.defender import (
     AdversarialDefender,
     BiasedDefender,
-    CenteredDefender,
     UniformRandomDefender,
 )
 from battleship_rl.baselines.heuristic_probmap import HeuristicProbMapAgent
 from battleship_rl.baselines.random_agent import RandomAgent
 from battleship_rl.envs.battleship_env import BattleshipEnv
 from battleship_rl.eval.metrics import generalization_gap, summarize
-from battleship_rl.eval import defender_metrics as dm
 
 
 
@@ -156,7 +154,6 @@ def evaluate_policy(
     defenders: list[tuple[str, object]] = [
         ("uniform", UniformRandomDefender()),
         ("biased", BiasedDefender()),
-        ("centered", CenteredDefender()),
     ]
     if adversarial_defender_path:
         defenders.append(
@@ -195,14 +192,10 @@ def evaluate_policy(
         results[defender_name] = summarize(lengths, truncated_flags)
         results[defender_name]["fallback_rate"] = np.mean(fallback_flags)
         results[defender_name]["rejections"] = total_rejections
-        # Compute placement-distribution metrics for this defender
-        results[defender_name]["placement_metrics"] = dm.summarize_defender(
-            defender, board_size=(env.height, env.width), ships=env.ship_lengths,
-            n_samples=200, seed=seed,
-        )
 
-    # gap: prefer centered > adversarial > biased
-    challenge_key = "adversarial" if "adversarial" in results else "centered" if "centered" in results else "biased"
+    # ---- Generalisation gap ------------------------------------------------
+    # Use adversarial distribution as the challenge if available; else biased.
+    challenge_key = "adversarial" if "adversarial" in results else "biased"
     results["gap"] = generalization_gap(
         mean_challenge=results[challenge_key]["mean"],
         mean_uniform=results["uniform"]["mean"],
@@ -217,7 +210,7 @@ def evaluate_policy(
 
 def _format_table(results: dict) -> str:
     rows = ["Mode | Mean | Std | 90th% | Fail Rate | Fallback Rate", "--- | --- | --- | --- | --- | ---"]
-    for key in ("uniform", "biased", "centered", "adversarial"):
+    for key in ("uniform", "biased", "adversarial"):
         if key not in results:
             continue
         d = results[key]
@@ -228,27 +221,7 @@ def _format_table(results: dict) -> str:
         if "rejections" in d and d["rejections"]:
             rej_str = ", ".join(f"{k}: {v}" for k, v in d["rejections"].items())
             rows.append(f"  └ Rejections ({key}): {rej_str}")
-
-    # ---- Placement distribution metrics table --------------------------------
-    dist_keys = [k for k in ("uniform", "biased", "centered", "adversarial") if k in results and "placement_metrics" in results[k]]
-    if dist_keys:
-        rows.append("")
-        rows.append("**Defender Placement Metrics**")
-        header = f"{'Metric':<22}" + "".join(f" | {k.capitalize():>10}" for k in dist_keys)
-        rows.append(header)
-        rows.append("-" * len(header))
-        for metric_key, label in [
-            ("edge_occupancy",  "Edge Occupancy"),
-            ("mean_dist_edge",  "Mean Dist Edge"),
-            ("cell_entropy",    "Cell Entropy"),
-            ("kl_from_uniform", "KL From Uniform"),
-        ]:
-            row = f"{label:<22}" + "".join(
-                f" | {results[k]['placement_metrics'].get(metric_key, float('nan')):>10.4f}"
-                for k in dist_keys
-            )
-            rows.append(row)
-
+            
     gap_src = results.get("gap_source", "biased")
     rows.append(f"\nΔ_gen ({gap_src} − uniform) = {results.get('gap', float('nan')):.2f}")
     return "\n".join(rows)
