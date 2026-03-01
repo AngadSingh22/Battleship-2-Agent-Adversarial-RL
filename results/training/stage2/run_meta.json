@@ -1,0 +1,14 @@
+{
+  "git_hash": "6875292",
+  "timestamp": "2026-03-01T05:08:12",
+  "init_attacker": "results/training/stage1/B/final_model.zip",
+  "args": {
+    "init_attacker": "results/training/stage1/B/final_model.zip",
+    "generations": 1,
+    "attacker_steps": 1000000,
+    "defender_steps": 300000,
+    "pool_size": 50000,
+    "seed": 42,
+    "n_eval_eps": 100
+  }
+}

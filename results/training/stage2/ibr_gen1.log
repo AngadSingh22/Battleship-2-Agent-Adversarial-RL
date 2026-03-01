@@ -1,0 +1,18 @@
+[run_meta] results/training/stage2/run_meta.json
+
+Building layout pool (50,000 layouts) ...
+Done in 70.5s  shape=(50000, 10, 10)
+
+Loading A_0 from results/training/stage1/B/final_model.zip ...
+
+============================================================
+  IBR Training: 1 generations
+  Attacker budget: 1,000,000 steps/gen
+  Defender budget: 300,000 steps/gen
+============================================================
+
+
+————————————————————————————————————————
+ Generation 1/1
+————————————————————————————————————————
+  [Gen 1] Training defender for 300,000 steps ...

@@ -1,0 +1,18 @@
+{
+  "git_hash": "6875292",
+  "timestamp": "2026-03-01T03:22:08",
+  "args": {
+    "regime": "C",
+    "total_steps": 2000000,
+    "n_envs": 16,
+    "ibr_switch_n": 10,
+    "seed": 42,
+    "eval_freq": 200000,
+    "eval_eps": 30,
+    "eval_modes": [
+      "UNIFORM",
+      "SPREAD"
+    ],
+    "final_eval_eps": 200
+  }
+}

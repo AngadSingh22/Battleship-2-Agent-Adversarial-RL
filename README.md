@@ -53,7 +53,7 @@ The design goal is high rollout throughput and reproducibility.
 | **C Core** | `csrc/` | Environment state transitions, valid mask computation, minimal allocations. |
 | **Bindings** | `bindings/` | `ctypes` interface. Zero-copy views into C-owned buffers exposed as NumPy arrays. |
 | **Python RL** | `battleship_rl/` | Gymnasium env wrapper, PPO training (sb3), IBR orchestration. |
-| **Scripts** | `scripts/` | Training entrypoints and loop management. |
+| **Scripts** | `training/`, `evaluation/`, `tools/` | Entrypoints, looping, and diagnostic utilities. |
 | **Formulation** | `formulation/` | LaTeX sources for the formal POMDP/Markov game definition. |
 
 ---

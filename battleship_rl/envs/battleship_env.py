@@ -9,7 +9,7 @@ from gymnasium import spaces
 from battleship_rl.agents.defender import UniformRandomDefender
 from battleship_rl.envs.observations import build_observation
 from battleship_rl.envs.rewards import StepPenaltyReward
-from bindings.c_api import CBattleshipFactory
+from battleship_rl.bindings.c_api import CBattleshipFactory
 
 
 class BattleshipEnv(gym.Env):
@@ -75,20 +75,17 @@ class BattleshipEnv(gym.Env):
             self.reward_fn = reward_fn
         elif "reward_scheme" in cfg:
             rs = cfg["reward_scheme"]
-            # Parse YAML scheme to ShapedReward params
-            # Expected YAML: hit, miss, sink
-            # ShapedReward = step_penalty + (alpha if hit) + (beta if sink)
-            step_penalty = float(rs.get("miss", -0.1))
-            target_hit = float(rs.get("hit", 1.0))
-            target_sink = float(rs.get("sink", 5.0))
-            
-            # alpha = Target - Base
+            # All fields must be explicit; no silent defaults that move off-spec.
+            # Default miss = -1.0 (same as StepPenaltyReward spec).
+            step_penalty = float(rs.get("miss", -1.0))
+            target_hit   = float(rs["hit"])    # KeyError intentional if omitted
+            target_sink  = float(rs["sink"])   # KeyError intentional if omitted
             alpha = target_hit - step_penalty
-            beta = target_sink - step_penalty
-            
+            beta  = target_sink - step_penalty
             from battleship_rl.envs.rewards import ShapedReward
             self.reward_fn = ShapedReward(alpha=alpha, beta=beta, step_penalty=step_penalty)
         else:
+            # Spec default: -1 per step, no bonus
             self.reward_fn = StepPenaltyReward()
         self.debug = bool(debug)
         self.invalid_action_penalty = -100.0
@@ -138,9 +135,11 @@ class BattleshipEnv(gym.Env):
             (self.height, self.width), self.ships, self.np_random
         )
         
-        # 2. Sync to Backend
-        # Reset backend state (clears hits/misses)
-        self.backend.reset(seed if seed is not None else 0)
+        # 3. Sync to Backend
+        # Derive backend seed purely from self.np_random so there is only one RNG.
+        # self.np_random is fully seeded by super().reset(seed=seed) above.
+        backend_seed = int(self.np_random.integers(0, 2**31 - 1))
+        self.backend.reset(backend_seed)
         # Copy layout to backend
         self.backend.set_board(self.ship_id_grid)
         
@@ -158,18 +157,12 @@ class BattleshipEnv(gym.Env):
         action = int(action)
         mask = self.get_action_mask()
         
-        # invalid Check
+        # Invalid action: use _build_info so info shape is always consistent
         if action < 0 or action >= mask.size or not mask[action]:
             if self.debug:
                 raise ValueError("Invalid action: %s" % action)
             obs = build_observation(self.hits_grid, self.miss_grid)
-            info = {
-                "action_mask": mask,
-                "outcome_type": "INVALID",
-                "outcome_ship_id": None,
-                "last_outcome": ("INVALID", None),
-            }
-            return obs, self.invalid_action_penalty, False, True, info
+            return obs, self.invalid_action_penalty, False, True, self._build_info("INVALID", None)
 
         # Delegate to Backend
         # Return code: 0=Miss, 1=Hit, 2=Sunk
@@ -198,6 +191,13 @@ class BattleshipEnv(gym.Env):
         info = self._build_info(outcome_type, outcome_ship_id)
         
         return obs, reward, terminated, False, info
+
+    def set_defender_weights(self, weights: list) -> None:
+        """Called by IBRSwitchCallback via env_method to swap the active defender.
+        Takes effect on the next reset() call. Normalizes weights in place.
+        """
+        total = sum(weights)
+        self._defender_weights = [w / total for w in weights]
 
     def get_action_mask(self) -> np.ndarray:
         # Zero-copy boolean mask: valid cells are neither hit nor missed
