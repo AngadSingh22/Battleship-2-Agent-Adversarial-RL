@@ -1,15 +1,18 @@
 {
-  "git_hash": "781fad6",
-  "timestamp": "2026-03-05T15:40:21",
-  "init_attacker": "results/training/stage1/B/final_model.zip",
+  "git_hash": "7078a66",
+  "timestamp": "2026-03-05T18:07:31",
+  "init_attacker": "results/training/stage2/attacker_gen_3.zip",
   "args": {
-    "init_attacker": "results/training/stage1/B/final_model.zip",
+    "init_attacker": "results/training/stage2/attacker_gen_3.zip",
     "generations": 3,
     "attacker_steps": 1000000,
     "defender_steps": 30000,
     "k_eval": 1,
     "pool_size": 50000,
     "seed": 42,
-    "n_eval_eps": 100
+    "n_eval_eps": 100,
+    "uniform_weight": 0.33,
+    "spread_weight": 0.17,
+    "out_dir": "results/training/stage2"
   }
 }

@@ -338,30 +338,30 @@ def train_attacker(
     steps: int,
     out_dir: Path,
     seed: int = BASE_SEED,
-    uniform_weight: float = 0.5,
+    uniform_weight: float = 0.33,
+    spread_weight: float = 0.17,
     dk_extract_n: int = 2_000,
 ) -> MaskablePPO:
-    """Train Attacker A_k against D_k (real learned defender) and UNIFORM.
+    """Train Attacker A_k against D_k (learned) + SPREAD (scripted anchor) + UNIFORM.
 
-    Mixture: {LearnedLayoutDefender(D_k): 1-uniform_weight, UNIFORM: uniform_weight}
+    Mixture: UNIFORM(uniform_weight) + SPREAD(spread_weight) + D_k(1 - uniform - spread)
 
-    LearnedLayoutDefender is a serializable defender backed by layouts extracted
-    from D_k's policy — safe for SubprocVecEnv workers (no GPU needed there).
-
-    The UNIFORM component is non-negotiable every generation to prevent attacker
-    from forgetting the base case.
+    SPREAD is included as a permanent scripted anchor so the attacker never loses
+    generalization on the hardest scripted baseline (Δ_gen key metric in the formulation).
+    D_k captures the learned adversarial layouts found by the defender each generation.
+    UNIFORM preserves base-case performance.
     """
-    dk_weight = 1.0 - uniform_weight
+    dk_weight = max(0.0, 1.0 - uniform_weight - spread_weight)
 
     print(f"  [Gen {generation}] Extracting D_k layout distribution ({dk_extract_n} samples) ...")
     dk_layouts = extract_dk_layouts(defender_model, layout_pool, n_layouts=dk_extract_n, seed=seed)
     dk_defender = LearnedLayoutDefender(dk_layouts)
 
-    defenders   = [UniformRandomDefender(), dk_defender]
-    def_weights = [uniform_weight, dk_weight]
+    defenders   = [UniformRandomDefender(), SpreadDefender(), dk_defender]
+    def_weights = [uniform_weight, spread_weight, dk_weight]
 
     print(f"  [Gen {generation}] Training attacker for {steps:,} steps ...")
-    print(f"    Attacker mix: UNIFORM={uniform_weight:.2f}  D_k={dk_weight:.2f}")
+    print(f"    Attacker mix: UNIFORM={uniform_weight:.2f}  SPREAD={spread_weight:.2f}  D_k={dk_weight:.2f}")
     print(f"    D_k unique layouts: {len(dk_layouts)}")
 
     train_venv = make_attacker_vec_env(defenders, def_weights, base_seed=seed)
@@ -576,9 +576,16 @@ def main():
     parser.add_argument("--pool_size",       type=int, default=POOL_SIZE)
     parser.add_argument("--seed",            type=int, default=BASE_SEED)
     parser.add_argument("--n_eval_eps",      type=int, default=100)
+    parser.add_argument("--uniform_weight",  type=float, default=0.33,
+                        help="Fraction of attacker training envs using UNIFORM defender (default 0.33)")
+    parser.add_argument("--spread_weight",   type=float, default=0.17,
+                        help="Fraction of attacker training envs using SPREAD defender (default 0.17). "
+                             "Remaining fraction goes to D_k (learned).")
+    parser.add_argument("--out_dir",         type=str, default="results/training/stage2",
+                        help="Output directory for all artifacts (default: results/training/stage2)")
     args = parser.parse_args()
 
-    out_dir = Path("results/training/stage2")
+    out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Resolve which Stage 1 model to use
@@ -643,7 +650,7 @@ def main():
         )
         learned_defenders.append(defender_model)
 
-        # === Phase B: Train Attacker — trains against REAL D_k ===
+        # === Phase B: Train Attacker — trains against REAL D_k + SPREAD anchor + UNIFORM ===
         attacker_before = attacker   # keep ref for before/after eval
         attacker = train_attacker(
             generation=gen,
@@ -653,6 +660,8 @@ def main():
             steps=args.attacker_steps,
             out_dir=out_dir,
             seed=args.seed + gen * 2000,
+            uniform_weight=args.uniform_weight,
+            spread_weight=args.spread_weight,
         )
 
         # === Phase C: Evaluate — before (A_{k-1}) and after (A_k) ===
