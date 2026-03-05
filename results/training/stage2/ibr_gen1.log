@@ -16,3 +16,296 @@ Loading A_0 from results/training/stage1/B/final_model.zip ...
  Generation 1/1
 ————————————————————————————————————————
   [Gen 1] Training defender for 300,000 steps ...
+  [Gen 1] Defender saved → results/training/stage2/defender_gen_1.zip
+  [Gen 1] Extracting D_k layout distribution (2000 samples) ...
+  [D_k extract] 2000 rolls → 3 unique layouts (pool coverage: 0.0%)
+  [Gen 1] Training attacker for 1,000,000 steps ...
+    Attacker mix: UNIFORM=0.50  D_k=0.50
+    D_k unique layouts: 3
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+Traceback (most recent call last):
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py", line 667, in <module>
+Traceback (most recent call last):
+  File "/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py", line 618, in main
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+  File "/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py", line 343, in train_attacker
+  File "/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py", line 196, in make_attacker_vec_env
+  File "/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/.venv/lib/python3.12/site-packages/stable_baselines3/common/vec_env/subproc_vec_env.py", line 126, in __init__
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    self.remotes[0].send(("get_spaces", None))
+  File "/usr/lib/python3.12/multiprocessing/connection.py", line 206, in send
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    self._send_bytes(_ForkingPickler.dumps(obj))
+  File "/usr/lib/python3.12/multiprocessing/connection.py", line 427, in _send_bytes
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+    self._send(header + buf)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+  File "/usr/lib/python3.12/multiprocessing/connection.py", line 384, in _send
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+    n = write(self._handle, buf)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+BrokenPipeError: [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 274, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/forkserver.py", line 313, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/usr/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 285, in run_path
+  File "<frozen runpy>", line 254, in _get_code_from_file
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cis-lab/Angad Singh Ahuja/Cloned Repositeries/Private/Battleship-2-Agent-Adversarial-RL/scripts/train_ibr.py'

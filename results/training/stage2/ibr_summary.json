@@ -1,0 +1,200 @@
+[
+  {
+    "generation": 1,
+    "before": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 90.81,
+          "p90": 100.0
+        },
+        "EDGE": {
+          "mean": 93.16,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 80.21,
+          "p90": 92.10000000000001
+        },
+        "SPREAD": {
+          "mean": 93.24,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 90.25,
+          "p90": 99.0
+        }
+      },
+      "vs_D_k": {
+        "mean": 90.48,
+        "p90": 100.0
+      }
+    },
+    "after": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 88.04,
+          "p90": 99.0
+        },
+        "EDGE": {
+          "mean": 94.0,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 72.39,
+          "p90": 91.10000000000001
+        },
+        "SPREAD": {
+          "mean": 98.46,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 88.72,
+          "p90": 98.10000000000001
+        }
+      },
+      "vs_D_k": {
+        "mean": 89.24,
+        "p90": 98.1
+      }
+    },
+    "checks": {
+      "defender_adversarial": -0.3299999999999983,
+      "attacker_adaptation": -1.240000000000009,
+      "uniform_drift": -2.769999999999996,
+      "exploitability_proxy": 0.013630168105406503,
+      "delta_spread_vs_uniform": 10.419999999999987
+    }
+  },
+  {
+    "generation": 2,
+    "before": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 88.04,
+          "p90": 99.0
+        },
+        "EDGE": {
+          "mean": 94.0,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 72.39,
+          "p90": 91.10000000000001
+        },
+        "SPREAD": {
+          "mean": 98.46,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 88.72,
+          "p90": 98.10000000000001
+        }
+      },
+      "vs_D_k": {
+        "mean": 89.08,
+        "p90": 98.1
+      }
+    },
+    "after": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 88.14,
+          "p90": 99.0
+        },
+        "EDGE": {
+          "mean": 94.12,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 74.1,
+          "p90": 92.0
+        },
+        "SPREAD": {
+          "mean": 98.75,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 88.45,
+          "p90": 98.10000000000001
+        }
+      },
+      "vs_D_k": {
+        "mean": 89.66,
+        "p90": 98.0
+      }
+    },
+    "checks": {
+      "defender_adversarial": 1.039999999999992,
+      "attacker_adaptation": 0.5799999999999983,
+      "uniform_drift": 0.09999999999999432,
+      "exploitability_proxy": 0.017245291581574722,
+      "delta_spread_vs_uniform": 10.61
+    }
+  },
+  {
+    "generation": 3,
+    "before": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 88.14,
+          "p90": 99.0
+        },
+        "EDGE": {
+          "mean": 94.12,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 74.1,
+          "p90": 92.0
+        },
+        "SPREAD": {
+          "mean": 98.75,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 88.45,
+          "p90": 98.10000000000001
+        }
+      },
+      "vs_D_k": {
+        "mean": 90.22,
+        "p90": 98.1
+      }
+    },
+    "after": {
+      "scripted_modes": {
+        "UNIFORM": {
+          "mean": 88.29,
+          "p90": 99.0
+        },
+        "EDGE": {
+          "mean": 93.44,
+          "p90": 100.0
+        },
+        "CLUSTER": {
+          "mean": 75.62,
+          "p90": 93.10000000000001
+        },
+        "SPREAD": {
+          "mean": 98.53,
+          "p90": 100.0
+        },
+        "PARITY": {
+          "mean": 88.25,
+          "p90": 98.10000000000001
+        }
+      },
+      "vs_D_k": {
+        "mean": 88.62,
+        "p90": 99.1
+      }
+    },
+    "checks": {
+      "defender_adversarial": 2.0799999999999983,
+      "attacker_adaptation": -1.5999999999999943,
+      "uniform_drift": 0.15000000000000568,
+      "exploitability_proxy": 0.003737682636765186,
+      "delta_spread_vs_uniform": 10.239999999999995
+    }
+  }
+]

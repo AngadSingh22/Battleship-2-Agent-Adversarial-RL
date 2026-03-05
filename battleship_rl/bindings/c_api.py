@@ -4,7 +4,8 @@ from pathlib import Path
 import numpy as np
 
 # Resolve platform library path: .so on Linux/macOS, .dll on Windows.
-_CSRC_DIR = Path(__file__).parent.parent / "csrc"
+# bindings/ lives at battleship_rl/bindings/, so we go up 3 levels to repo root.
+_CSRC_DIR = Path(__file__).parent.parent.parent / "csrc"
 if sys.platform.startswith("win"):
     _LIB_PATH = _CSRC_DIR / "libbattleship_v2.dll"
 else:

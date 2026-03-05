@@ -368,7 +368,7 @@ def train_attacker(
 
     attacker = MaskablePPO(
         env=train_venv,
-        **{k: v for k, v in ATTACKER_PPO_KWARGS.items() if k not in ("device",)},
+        **{k: v for k, v in ATTACKER_PPO_KWARGS.items() if k not in ("device", "verbose")},
         device="cuda",
         verbose=0,
         seed=seed,
